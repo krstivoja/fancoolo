@@ -6,7 +6,13 @@ import centralizedApi from "../../utils/api/CentralizedApiService";
  * Custom hook for handling SCSS compilation logic
  * Manages frontend and editor SCSS compilation with partial support
  */
-export const useScssCompilation = (selectedPost, metaData, setScssError, setShowToast) => {
+export const useScssCompilation = (
+  selectedPost,
+  metaData,
+  setToastMessage,
+  setToastTitle,
+  setShowToast
+) => {
   // Get current partials data for compilation
   const getCurrentPartials = useMemo(() => {
     return async () => {
@@ -114,12 +120,13 @@ export const useScssCompilation = (selectedPost, metaData, setScssError, setShow
       console.error("❌ SCSS compilation failed:", compilationError);
       const errorMessage =
         compilationError.message || "SCSS compilation failed";
-      setScssError(errorMessage);
+      setToastMessage(errorMessage);
+      setToastTitle("SCSS Compilation Error");
       setShowToast(true);
       // Continue with normal save even if SCSS compilation fails
       return null;
     }
-  }, [selectedPost, metaData.blocks?.scss, getCurrentPartials, setScssError, setShowToast]);
+  }, [selectedPost, metaData.blocks?.scss, getCurrentPartials, setToastMessage, setToastTitle, setShowToast]);
 
   /**
    * Compile editor SCSS with partials support
@@ -215,12 +222,13 @@ export const useScssCompilation = (selectedPost, metaData, setScssError, setShow
       );
       const errorMessage =
         compilationError.message || "Editor SCSS compilation failed";
-      setScssError(errorMessage);
+      setToastMessage(errorMessage);
+      setToastTitle("SCSS Compilation Error");
       setShowToast(true);
       // Continue with normal save even if editor SCSS compilation fails
       return null;
     }
-  }, [selectedPost, metaData.blocks?.editorScss, metaData.blocks?.editor_selected_partials, metaData.blocks?.editorSelectedPartials, setScssError, setShowToast]);
+  }, [selectedPost, metaData.blocks?.editorScss, metaData.blocks?.editor_selected_partials, metaData.blocks?.editorSelectedPartials, setToastMessage, setToastTitle, setShowToast]);
 
   /**
    * Compile both frontend and editor SCSS

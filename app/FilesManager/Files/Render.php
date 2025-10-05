@@ -2,10 +2,39 @@
 
 namespace FanCoolo\FilesManager\Files;
 
-use FanCoolo\FilesManager\Interfaces\FileGeneratorInterface;
-use FanCoolo\Content\FunculoTypeTaxonomy;
-use FanCoolo\Admin\Api\Services\MetaKeysConstants;
+use RuntimeException;
 use WP_Post;
+
+use FanCoolo\Admin\Api\Services\MetaKeysConstants;
+use FanCoolo\Content\FunculoTypeTaxonomy;
+use FanCoolo\FilesManager\Interfaces\FileGeneratorInterface;
+
+use function array_map;
+use function copy;
+use function escapeshellarg;
+use function explode;
+use function file_exists;
+use function file_put_contents;
+use function fclose;
+use function ini_get;
+use function in_array;
+use function is_resource;
+use function ob_end_clean;
+use function ob_start;
+use function preg_match;
+use function preg_replace;
+use function preg_split;
+use function proc_close;
+use function proc_open;
+use function rename;
+use function sprintf;
+use function stream_get_contents;
+use function stripos;
+use function tempnam;
+use function trim;
+use function unlink;
+
+use const PHP_BINARY;
 
 class Render implements FileGeneratorInterface
 {
@@ -22,12 +51,37 @@ class Render implements FileGeneratorInterface
             return false;
         }
 
-        // Process blockProps placeholder for PHP rendering
         $processedContent = $this->processBlockPropsPlaceholder($phpContent);
 
-        $filepath = $outputPath . '/' . $this->getGeneratedFileName($post);
+        $targetPath = $outputPath . '/' . $this->getGeneratedFileName($post);
+        $blockLabel = $post->post_title ?: $post->post_name;
 
-        return file_put_contents($filepath, $processedContent) !== false;
+        $temporaryFile = tempnam($outputPath, 'render_');
+
+        if ($temporaryFile === false) {
+            throw new RuntimeException(
+                sprintf('Unable to create a temporary render file for block "%s".', $blockLabel)
+            );
+        }
+
+        if (file_put_contents($temporaryFile, $processedContent) === false) {
+            @unlink($temporaryFile);
+
+            throw new RuntimeException(
+                sprintf('Unable to write render template for block "%s".', $blockLabel)
+            );
+        }
+
+        try {
+            $this->assertValidPhpSyntax($temporaryFile, $processedContent, $blockLabel);
+            $this->persistGeneratedFile($temporaryFile, $targetPath, $blockLabel);
+        } catch (RuntimeException $exception) {
+            @unlink($temporaryFile);
+
+            throw $exception;
+        }
+
+        return true;
     }
 
     public function getRequiredMetaKeys(): array
@@ -51,43 +105,28 @@ class Render implements FileGeneratorInterface
         return !empty($phpContent);
     }
 
-    /**
-     * Process blockProps placeholder in PHP content
-     * Replaces 'blockProps' with the actual PHP code for block wrapper attributes
-     *
-     * @param string $phpContent The PHP content to process
-     * @return string Processed PHP content
-     */
     private function processBlockPropsPlaceholder(string $phpContent): string
     {
-        // Replace blockProps placeholder with PHP code
-        // This handles cases like: <div blockProps>, <section blockProps class="extra">, etc.
         $processed = preg_replace_callback(
             '/(<[^>]+?)(\s+)blockProps(\s*[^>]*?>)/i',
             function($matches) {
-                $beforeBlockProps = $matches[1]; // e.g., "<div"
-                $whitespace = $matches[2];       // whitespace before blockProps
-                $afterBlockProps = $matches[3];  // everything after blockProps, including closing ">"
+                $beforeBlockProps = $matches[1];
+                $afterBlockProps = $matches[3];
 
-                // Check if there are already attributes after blockProps
                 $trimmedAfter = trim($afterBlockProps);
                 if ($trimmedAfter === '>') {
-                    // Simple case: <div blockProps>
                     return $beforeBlockProps . ' <?php echo get_block_wrapper_attributes(); ?>' . $afterBlockProps;
-                } else {
-                    // Complex case: <div blockProps class="extra"> or <div blockProps id="test" class="extra">
-                    // Extract the existing attributes
-                    $existingAttrs = trim(substr($afterBlockProps, 0, -1)); // Remove the closing ">"
-
-                    if (!empty($existingAttrs)) {
-                        // Merge with existing attributes
-                        return $beforeBlockProps . ' <?php echo get_block_wrapper_attributes(array( \'class\' => \'' .
-                               $this->extractClassFromAttributes($existingAttrs) . '\' )); ?>' .
-                               $this->extractNonClassAttributes($existingAttrs) . '>';
-                    } else {
-                        return $beforeBlockProps . ' <?php echo get_block_wrapper_attributes(); ?>' . $afterBlockProps;
-                    }
                 }
+
+                $existingAttrs = trim(substr($afterBlockProps, 0, -1));
+
+                if (!empty($existingAttrs)) {
+                    return $beforeBlockProps . ' <?php echo get_block_wrapper_attributes(array( \'class\' => \'' .
+                        $this->extractClassFromAttributes($existingAttrs) . '\' )); ?>' .
+                        $this->extractNonClassAttributes($existingAttrs) . '>';
+                }
+
+                return $beforeBlockProps . ' <?php echo get_block_wrapper_attributes(); ?>' . $afterBlockProps;
             },
             $phpContent
         );
@@ -95,12 +134,191 @@ class Render implements FileGeneratorInterface
         return $processed;
     }
 
-    /**
-     * Extract class attribute value from attribute string
-     *
-     * @param string $attributes The attributes string
-     * @return string The class value or empty string
-     */
+    private function assertValidPhpSyntax(string $filePath, string $phpContent, string $blockLabel): void
+    {
+        $lintResult = $this->lintWithPhpBinary($filePath);
+
+        if ($lintResult['available']) {
+            if ($lintResult['error'] !== null) {
+                throw new RuntimeException(
+                    sprintf('PHP syntax error in block "%s": %s', $blockLabel, $lintResult['error'])
+                );
+            }
+
+            return;
+        }
+
+        $fallbackError = $this->lintWithEval($phpContent);
+
+        if ($fallbackError !== null) {
+            throw new RuntimeException(
+                sprintf('PHP syntax error in block "%s": %s', $blockLabel, $fallbackError)
+            );
+        }
+    }
+
+    private function persistGeneratedFile(string $source, string $destination, string $blockLabel): void
+    {
+        if (file_exists($destination) && !@unlink($destination)) {
+            throw new RuntimeException(
+                sprintf('Unable to overwrite render template for block "%s".', $blockLabel)
+            );
+        }
+
+        if (@rename($source, $destination)) {
+            return;
+        }
+
+        if (@copy($source, $destination)) {
+            @unlink($source);
+            return;
+        }
+
+        throw new RuntimeException(
+            sprintf('Unable to persist render template for block "%s".', $blockLabel)
+        );
+    }
+
+    private function lintWithPhpBinary(string $filePath): array
+    {
+        if (!defined('PHP_BINARY') || PHP_BINARY === '' || $this->isFunctionDisabled('proc_open')) {
+            return ['available' => false, 'error' => null];
+        }
+
+        $binary = PHP_BINARY;
+
+        if (stripos($binary, 'php-fpm') !== false || stripos($binary, 'php-cgi') !== false) {
+            return ['available' => false, 'error' => null];
+        }
+
+        $command = escapeshellarg($binary) . ' -l ' . escapeshellarg($filePath);
+
+        $descriptors = [
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ];
+
+        $process = @proc_open($command, $descriptors, $pipes, null, null);
+
+        if (!is_resource($process)) {
+            return ['available' => false, 'error' => null];
+        }
+
+        $stdout = stream_get_contents($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+
+        foreach ($pipes as $pipe) {
+            fclose($pipe);
+        }
+
+        $exitCode = proc_close($process);
+
+        if ($exitCode === 0) {
+            return ['available' => true, 'error' => null];
+        }
+
+        $message = trim($stderr !== '' ? $stderr : $stdout);
+
+        if ($this->isNonCliUsageMessage($message)) {
+            return ['available' => false, 'error' => null];
+        }
+
+        return [
+            'available' => true,
+            'error' => $this->normalizeLintMessage($message),
+        ];
+    }
+
+    private function lintWithEval(string $phpContent): ?string
+    {
+        try {
+            ob_start();
+            eval('?>' . $phpContent);
+            ob_end_clean();
+        } catch (\ParseError $exception) {
+            ob_end_clean();
+
+            $message = $this->normalizeLintMessage($exception->getMessage());
+            $line = $exception->getLine();
+
+            if (is_int($line) && $line > 0 && stripos($message, ' on line ') === false) {
+                return sprintf('%s on line %d.', rtrim($message, '.'), $line);
+            }
+
+            return $message;
+        } catch (\Throwable $throwable) {
+            ob_end_clean();
+        }
+
+        return null;
+    }
+
+    private function normalizeLintMessage(string $message): string
+    {
+        $message = trim($message);
+
+        if ($message === '') {
+            return 'Unknown syntax error.';
+        }
+
+        $lines = preg_split('/\r?\n/', $message);
+        $firstLine = $lines[0] ?? $message;
+
+        $firstLine = preg_replace('/^PHP Parse error:\s*/i', '', $firstLine);
+
+        if (preg_match('/ in .* on line (\d+)/i', $firstLine, $matches)) {
+            $line = (int) $matches[1];
+            $firstLine = preg_replace('/ in .* on line (\d+)/i', ' on line ' . $line, $firstLine);
+        }
+
+        if (preg_match('/ in .*:(\d+)/', $firstLine, $matches)) {
+            $line = (int) $matches[1];
+            $firstLine = preg_replace('/ in .*:(\d+)/', ' on line ' . $line, $firstLine);
+        }
+
+        return rtrim($firstLine, '.') . '.';
+    }
+
+    private function isFunctionDisabled(string $functionName): bool
+    {
+        if (!function_exists($functionName)) {
+            return true;
+        }
+
+        $disabled = ini_get('disable_functions');
+
+        if (empty($disabled)) {
+            return false;
+        }
+
+        $disabledFunctions = array_map('trim', explode(',', $disabled));
+
+        return in_array($functionName, $disabledFunctions, true);
+    }
+
+    private function isNonCliUsageMessage(string $message): bool
+    {
+        $lower = strtolower($message);
+
+        if ($lower === '') {
+            return false;
+        }
+
+        if (strpos($lower, 'usage: php-fpm') !== false) {
+            return true;
+        }
+
+        if (strpos($lower, 'command not found') !== false) {
+            return true;
+        }
+
+        if (strpos($lower, 'no such file or directory') !== false) {
+            return true;
+        }
+
+        return false;
+    }
+
     private function extractClassFromAttributes(string $attributes): string
     {
         if (preg_match('/class=["\']([^"\']*)["\']/', $attributes, $matches)) {
@@ -109,15 +327,8 @@ class Render implements FileGeneratorInterface
         return '';
     }
 
-    /**
-     * Extract non-class attributes from attribute string
-     *
-     * @param string $attributes The attributes string
-     * @return string The non-class attributes
-     */
     private function extractNonClassAttributes(string $attributes): string
     {
-        // Remove class attribute but keep others
         $withoutClass = preg_replace('/\s*class=["\'][^"\']*["\']/', '', $attributes);
         return trim($withoutClass) ? ' ' . trim($withoutClass) : '';
     }

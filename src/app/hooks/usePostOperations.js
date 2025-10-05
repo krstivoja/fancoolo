@@ -10,7 +10,8 @@ export const usePostOperations = ({
   setSelectedPost,
   setMetaData,
   setSaveStatus,
-  setScssError,
+  setToastMessage,
+  setToastTitle,
   setShowToast,
   saveStatus,
 }) => {
@@ -36,7 +37,10 @@ export const usePostOperations = ({
       setSelectedPost(fullPost);
       setMetaData(fullPost.meta || {});
       setSaveStatus("");
-      setScssError(null);
+      setToastMessage(null);
+      if (typeof setToastTitle === "function") {
+        setToastTitle("");
+      }
 
       // Check if SCSS needs recompilation (set by backend when partial changes)
       const needsRecompile = fullPost.meta?._funculo_scss_needs_recompile === '1';
@@ -46,7 +50,7 @@ export const usePostOperations = ({
         window._funculo_auto_recompile_post_id = post.id;
       }
     },
-    [selectedPost, saveStatus, setSelectedPost, setMetaData, setSaveStatus, setScssError]
+    [selectedPost, saveStatus, setSelectedPost, setMetaData, setSaveStatus, setToastMessage, setToastTitle]
   );
 
   /**
@@ -112,7 +116,10 @@ export const usePostOperations = ({
           setSelectedPost(fullPartial);
           setMetaData(fullPartial.meta || {});
           setSaveStatus("");
-          setScssError(null);
+          setToastMessage(null);
+          if (typeof setToastTitle === "function") {
+            setToastTitle("");
+          }
         } else {
           console.error("Partial not found:", partialName);
         }
@@ -120,7 +127,7 @@ export const usePostOperations = ({
         console.error("Error opening partial:", error);
       }
     },
-    [setShowToast, setSelectedPost, setMetaData, setSaveStatus, setScssError]
+    [setShowToast, setSelectedPost, setMetaData, setSaveStatus, setToastMessage, setToastTitle]
   );
 
   /**

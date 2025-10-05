@@ -28,7 +28,7 @@ export const hasListVisibleChanges = (originalMeta = {}, newMeta = {}) => {
 /**
  * Custom hook for managing metadata state and changes
  */
-export const useMetadata = (setScssError, setShowToast) => {
+export const useMetadata = (setToastMessage, setToastTitle, setShowToast) => {
   const [metaData, setMetaData] = useState({});
 
   /**
@@ -65,11 +65,14 @@ export const useMetadata = (setScssError, setShowToast) => {
 
       // Clear SCSS error when user makes changes
       if (section === "blocks" && field === "scss") {
-        setScssError(null);
+        setToastMessage(null);
+        if (typeof setToastTitle === "function") {
+          setToastTitle("");
+        }
         setShowToast(false);
       }
     },
-    [setScssError, setShowToast]
+    [setToastMessage, setToastTitle, setShowToast]
   );
 
   return {

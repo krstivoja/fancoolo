@@ -21,13 +21,15 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
   // UI state
   const [selectedPost, setSelectedPost] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
-  const [scssError, setScssError] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
+  const [toastTitle, setToastTitle] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [settingsTab, setSettingsTab] = useState("settings"); // Settings sidebar tab state
 
   // Metadata hook
   const { metaData, setMetaData, handleMetaChange } = useMetadata(
-    setScssError,
+    setToastMessage,
+    setToastTitle,
     setShowToast
   );
 
@@ -35,7 +37,8 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
   const { compileAllScss } = useScssCompilation(
     selectedPost,
     metaData,
-    setScssError,
+    setToastMessage,
+    setToastTitle,
     setShowToast
   );
 
@@ -45,7 +48,8 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
     setSelectedPost,
     setMetaData,
     setSaveStatus,
-    setScssError,
+    setToastMessage,
+    setToastTitle,
     setShowToast,
     saveStatus,
   });
@@ -62,11 +66,11 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
   } = useAppData(selectedPost, postOperations.handlePostSelect, searchParams);
 
   // Initialize error handler with Toast system
-  React.useEffect(() => {
+  useEffect(() => {
     errorHandler.setNotificationHandler({
       show: (notification) => {
-        // Integrate with existing Toast system
-        setScssError(notification.message);
+        setToastMessage(notification.message);
+        setToastTitle(notification.title || "Error");
         setShowToast(true);
       },
     });
@@ -75,6 +79,8 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
   // Handle toast close
   const handleToastClose = () => {
     setShowToast(false);
+    setToastMessage(null);
+    setToastTitle("");
   };
 
   // Update metadata change to set save status
@@ -89,6 +95,7 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
 
     try {
       let hotReloadPayload = null;
+      let operationsResult = null;
 
       if (selectedPost?.id) {
         // Compile SCSS (both frontend and editor) if needed
@@ -101,7 +108,7 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
         );
 
         // Use batch operation to save meta data and regenerate files in one request
-        await centralizedApi.savePostWithOperations(
+        operationsResult = await centralizedApi.savePostWithOperations(
           selectedPost.id,
           metaData,
           true,
@@ -176,7 +183,30 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
         }
       } else {
         // Just regenerate files if no meta changes
-        await centralizedApi.regenerateFiles();
+        operationsResult = await centralizedApi.regenerateFiles();
+      }
+
+      const failedOperationsData = operationsResult?.failed ?? [];
+
+      if (failedOperationsData.length > 0) {
+        const message = failedOperationsData
+          .map((item) => {
+            const operationType = item?.operation?.type || "Operation";
+            const errorText = item?.error || item?.message || "Unknown error";
+            return `${operationType}: ${errorText}`;
+          })
+          .join("\n");
+
+        const hasRenderFailure = failedOperationsData.some(
+          (item) => item?.operation?.type === "regenerate_files"
+        );
+
+        setToastMessage(message);
+        setToastTitle(hasRenderFailure ? "Block Render Error" : "Save Operation Failed");
+        setShowToast(true);
+        setSaveStatus("error");
+
+        return false;
       }
 
       setSaveStatus("saved");
@@ -264,7 +294,7 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
     groupedPosts.symbols.length +
     groupedPosts["scss-partials"].length;
 
-  const toastIsVisible = showToast && scssError;
+  const toastIsVisible = showToast && toastMessage;
 
   if (loading) return <div>Loading...</div>;
 
@@ -286,11 +316,11 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
           />
         </div>
 
-        {/* Toast for SCSS compilation errors */}
+        {/* Toast for editor errors (SCSS compilation, PHP lint, etc.) */}
         <Toast
-          message={scssError}
+          message={toastMessage}
           type="error"
-          title="SCSS Compilation Error"
+          title={toastTitle || "Error"}
           isVisible={toastIsVisible}
           onClose={handleToastClose}
           onOpenPartial={postOperations.handleOpenPartial}
@@ -334,11 +364,11 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
         </div>
       </div>
 
-      {/* Toast for SCSS compilation errors */}
+      {/* Toast for editor errors (SCSS compilation, PHP lint, etc.) */}
       <Toast
-        message={scssError}
+        message={toastMessage}
         type="error"
-        title="SCSS Compilation Error"
+        title={toastTitle || "Error"}
         isVisible={toastIsVisible}
         onClose={handleToastClose}
         onOpenPartial={postOperations.handleOpenPartial}
