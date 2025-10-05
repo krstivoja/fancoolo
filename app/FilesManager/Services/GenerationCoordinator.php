@@ -24,10 +24,7 @@ class GenerationCoordinator
      */
     public function handlePostSave(int $postId, WP_Post $post, bool $update): void
     {
-        error_log("FanCoolo Debug: handlePostSave called for post ID: $postId, title: {$post->post_title}");
-
         if ($post->post_type !== FunculoPostType::getPostType()) {
-            error_log("FanCoolo Debug: Skipping - wrong post type: {$post->post_type}");
             return;
         }
 
@@ -46,17 +43,14 @@ class GenerationCoordinator
 
         // Skip file generation for SCSS partials - they're compiled in browser
         if ($isScssPartial) {
-            error_log("FanCoolo Debug: Skipping file generation for SCSS partial (browser compilation)");
             // Don't generate files, but still handle global impact below
         } else {
             // Guard: Skip if regeneration is not needed
             if ($this->shouldSkipRegeneration($postId, $post)) {
-                error_log("FanCoolo Debug: Skipping - regeneration not needed");
                 return;
             }
 
             // Smart save: just regenerate
-            error_log("FanCoolo Debug: Generating files for post ID: $postId");
             $this->generateFilesForSinglePost($postId, $post);
         }
 

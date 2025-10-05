@@ -256,12 +256,9 @@ class StandardBulkPipeline
 
             $selectedPartials = $dbSettings['selected_partials'] ?? [];
             $editorSelectedPartials = $dbSettings['editor_selected_partials'] ?? [];
-            error_log("FanCoolo Debug: StandardBulkPipeline formatPostData - Post ID: $postId, selected_partials from DB: " . json_encode($selectedPartials) . ", editor_selected_partials: " . json_encode($editorSelectedPartials));
 
             $formattedMeta['blocks']['selected_partials'] = json_encode($selectedPartials);
             $formattedMeta['blocks']['editor_selected_partials'] = json_encode($editorSelectedPartials);
-
-            error_log("FanCoolo Debug: StandardBulkPipeline formatPostData - Final meta blocks: " . json_encode($formattedMeta['blocks']));
         }
 
         // Add SCSS partial settings if this is a SCSS partial

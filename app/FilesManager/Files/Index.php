@@ -181,8 +181,7 @@ class Index implements FileGeneratorInterface
         // Replace the placeholder with actual block slug
         $content = str_replace('BLOCK_SLUG_PLACEHOLDER', $blockSlug, $content);
 
-        // Write the file with error handling and logging
-        error_log("FanCoolo Index Generator: Writing to {$indexJsPath}");
+        // Write the file with error handling
         $result = file_put_contents($indexJsPath, $content);
 
         if ($result === false) {
@@ -190,7 +189,6 @@ class Index implements FileGeneratorInterface
             return false;
         }
 
-        error_log("FanCoolo Index Generator: Successfully wrote {$result} bytes to {$indexJsPath}");
         return true;
     }
 

@@ -70,9 +70,6 @@ class PostsQueryApiController extends BaseApiController
             error_log("🔔 [PostsQueryApiController] Added recompile flag to response for post $postId: $needsRecompile");
         }
 
-        // Debug logging for selected_partials
-        error_log("FanCoolo Debug: PostsQueryApiController getPostWithRelated - Post ID: $postId, meta blocks: " . json_encode($postData['meta']['blocks'] ?? []));
-
         // Add related data based on post type
         $relatedData = [];
         $postTerms = $postData['terms'] ?? [];
@@ -125,9 +122,6 @@ class PostsQueryApiController extends BaseApiController
         $performanceData = [
             'duration_ms' => round((microtime(true) - $startTime) * 1000, 2),
         ];
-
-        // Final debug logging before sending response
-        error_log("FanCoolo Debug: PostsQueryApiController getPostWithRelated - Final response post.meta.blocks: " . json_encode($postData['meta']['blocks'] ?? []));
 
         return $this->responseFormatter->success([
             'post' => $postData,
