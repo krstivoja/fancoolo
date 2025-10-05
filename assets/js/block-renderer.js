@@ -641,17 +641,42 @@
           const abortController = new AbortController();
           abortControllerRef.current = abortController;
 
-          const postId = wp.data.select("core/editor").getCurrentPostId() || 0;
+          // Get post ID - handle both post editor and Site Editor (template editor)
+          let postId = null;
+
+          // Try post/page editor first
+          const editorSelect = wp.data.select("core/editor");
+          if (editorSelect && editorSelect.getCurrentPostId) {
+            postId = editorSelect.getCurrentPostId();
+          }
+
+          // Fallback to Site Editor (template editor)
+          if (!postId) {
+            const editSiteSelect = wp.data.select("core/edit-site");
+            if (editSiteSelect && editSiteSelect.getEditedPostId) {
+              postId = editSiteSelect.getEditedPostId();
+            }
+          }
+
+          // Validate post_id is a positive integer
+          const validPostId = postId && Number.isInteger(Number(postId)) && Number(postId) > 0;
 
           setIsLoading(true);
+
+          // Prepare API request data
+          const requestData = {
+            attributes: attributes,
+          };
+
+          // Only include post_id if we have a valid positive integer
+          if (validPostId) {
+            requestData.post_id = Number(postId);
+          }
 
           wp.apiFetch({
             path: `/wp/v2/block-renderer/${blockName}?context=edit`,
             method: "POST",
-            data: {
-              attributes: attributes,
-              post_id: postId,
-            },
+            data: requestData,
             signal: abortController.signal,
           })
             .then((response) => {
