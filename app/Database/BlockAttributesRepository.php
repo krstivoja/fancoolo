@@ -87,22 +87,27 @@ class BlockAttributesRepository extends AbstractBulkRepository
 
             // Insert new attributes
             foreach ($attributes as $index => $attr) {
+                $originalName = $attr['name'] ?? '';
+
                 $data = [
                     'post_id' => $post_id,
-                    'attribute_name' => self::toCamelCase($attr['name'] ?? ''),
+                    'attribute_name' => self::toCamelCase($originalName),
                     'attribute_type' => sanitize_text_field($attr['type'] ?? 'text'),
                     'attribute_order' => isset($attr['order']) ? intval($attr['order']) : $index,
                 ];
 
                 // Optional fields
+                // Use original name as label if no explicit label is provided
                 if (isset($attr['label'])) {
-                    $data['label'] = sanitize_text_field($attr['label']);
+                    $data['label'] = sanitize_textarea_field($attr['label']);
+                } else if (!empty($originalName)) {
+                    $data['label'] = sanitize_textarea_field($originalName);
                 }
                 if (isset($attr['placeholder'])) {
-                    $data['placeholder'] = sanitize_text_field($attr['placeholder']);
+                    $data['placeholder'] = sanitize_textarea_field($attr['placeholder']);
                 }
                 if (isset($attr['help'])) {
-                    $data['help_text'] = sanitize_text_field($attr['help']);
+                    $data['help_text'] = sanitize_textarea_field($attr['help']);
                 }
                 if (isset($attr['default_value'])) {
                     // Preserve hyphens for CSS classes and attribute values
@@ -193,23 +198,28 @@ class BlockAttributesRepository extends AbstractBulkRepository
 
         $table_name = DatabaseInstaller::getAttributesTableName();
 
+        $originalName = $attribute['name'] ?? '';
+
         $data = [
             'post_id' => $post_id,
-            'attribute_name' => self::toCamelCase($attribute['name'] ?? ''),
+            'attribute_name' => self::toCamelCase($originalName),
             'attribute_type' => sanitize_text_field($attribute['type'] ?? 'text'),
             'attribute_order' => isset($attribute['order']) ? intval($attribute['order']) : 0,
             'updated_at' => current_time('mysql')
         ];
 
         // Add optional fields (same as in save method)
+        // Use original name as label if no explicit label is provided
         if (isset($attribute['label'])) {
-            $data['label'] = sanitize_text_field($attribute['label']);
+            $data['label'] = sanitize_textarea_field($attribute['label']);
+        } else if (!empty($originalName)) {
+            $data['label'] = sanitize_textarea_field($originalName);
         }
         if (isset($attribute['placeholder'])) {
-            $data['placeholder'] = sanitize_text_field($attribute['placeholder']);
+            $data['placeholder'] = sanitize_textarea_field($attribute['placeholder']);
         }
         if (isset($attribute['help'])) {
-            $data['help_text'] = sanitize_text_field($attribute['help']);
+            $data['help_text'] = sanitize_textarea_field($attribute['help']);
         }
         if (isset($attribute['default_value'])) {
             // Preserve hyphens for CSS classes and attribute values

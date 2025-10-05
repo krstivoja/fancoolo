@@ -132,17 +132,17 @@ class AttributeMapper
         $normalized = [
             'name' => self::toCamelCase($attr['name']),
             'type' => sanitize_text_field($attr['type'] ?? 'text'),
-            'label' => sanitize_text_field($attr['label'] ?? $attr['name']),
+            'label' => sanitize_textarea_field($attr['label'] ?? $attr['name']),
             'id' => sanitize_key($attr['id'] ?? $attr['name'])
         ];
 
         // Add optional fields if present
         if (isset($attr['placeholder'])) {
-            $normalized['placeholder'] = sanitize_text_field($attr['placeholder']);
+            $normalized['placeholder'] = sanitize_textarea_field($attr['placeholder']);
         }
 
         if (isset($attr['help'])) {
-            $normalized['help'] = sanitize_text_field($attr['help']);
+            $normalized['help'] = sanitize_textarea_field($attr['help']);
         }
 
         // Handle options for select, radio, checkbox fields
@@ -176,13 +176,13 @@ class AttributeMapper
             return array_map(function($option) {
                 if (is_array($option)) {
                     return [
-                        'label' => sanitize_text_field($option['label'] ?? ''),
-                        'value' => sanitize_text_field($option['value'] ?? '')
+                        'label' => sanitize_textarea_field($option['label'] ?? ''),
+                        'value' => sanitize_textarea_field($option['value'] ?? '')
                     ];
                 }
                 return [
-                    'label' => sanitize_text_field($option),
-                    'value' => sanitize_text_field($option)
+                    'label' => sanitize_textarea_field($option),
+                    'value' => sanitize_textarea_field($option)
                 ];
             }, $options);
         }
