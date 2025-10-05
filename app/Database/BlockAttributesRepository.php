@@ -105,7 +105,8 @@ class BlockAttributesRepository extends AbstractBulkRepository
                     $data['help_text'] = sanitize_text_field($attr['help']);
                 }
                 if (isset($attr['default_value'])) {
-                    $data['default_value'] = sanitize_text_field($attr['default_value']);
+                    // Preserve hyphens for CSS classes and attribute values
+                    $data['default_value'] = sanitize_textarea_field($attr['default_value']);
                 }
                 if (isset($attr['required'])) {
                     $data['required'] = (int) $attr['required'];
@@ -211,7 +212,8 @@ class BlockAttributesRepository extends AbstractBulkRepository
             $data['help_text'] = sanitize_text_field($attribute['help']);
         }
         if (isset($attribute['default_value'])) {
-            $data['default_value'] = sanitize_text_field($attribute['default_value']);
+            // Preserve hyphens for CSS classes and attribute values
+            $data['default_value'] = sanitize_textarea_field($attribute['default_value']);
         }
         if (isset($attribute['required'])) {
             $data['required'] = (int) $attribute['required'];
