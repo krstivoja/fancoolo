@@ -254,6 +254,28 @@
     });
   }
 
+  // Pre-compiled regex for performance
+  const STYLE_KEBAB_REGEX = /-([a-z])/g;
+
+  // Dangerous URL protocols for XSS prevention
+  const DANGEROUS_PROTOCOLS = /^(\s)*(javascript|data|vbscript|about):/i;
+  const CSS_EXPRESSION_REGEX = /(expression|behavior|moz-binding|@import)/i;
+
+  /**
+   * Validate style value is safe
+   * @param {string} value - Style value to validate
+   * @returns {boolean} Whether value is safe
+   */
+  function isSafeStyleValue(value) {
+    if (!value) return false;
+
+    // Check for dangerous protocols and CSS expressions
+    if (DANGEROUS_PROTOCOLS.test(value)) return false;
+    if (CSS_EXPRESSION_REGEX.test(value)) return false;
+
+    return true;
+  }
+
   /**
    * Parse and sanitize DOM attributes
    * @param {Element} domNode - DOM element
@@ -279,11 +301,11 @@
           if (parts.length === 2) {
             const key = parts[0]
               .trim()
-              .replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+              .replace(STYLE_KEBAB_REGEX, (g) => g[1].toUpperCase());
             const value = parts[1].trim();
 
-            // Basic style value validation
-            if (key && value && !value.includes("javascript:")) {
+            // Enhanced style value validation
+            if (key && isSafeStyleValue(value)) {
               styleObject[key] = value;
             }
           }
@@ -302,6 +324,38 @@
     }
 
     return props;
+  }
+
+  /**
+   * Create InnerBlocks element with options
+   * @param {Object} options - Options for InnerBlocks
+   * @param {string} key - React key for element
+   * @returns {React.Element} InnerBlocks element
+   */
+  function createInnerBlocksElement(options, key) {
+    const innerBlocksProps = {
+      key: key,
+      allowedBlocks: options.allowedBlocks || null,
+      template: options.template || [],
+      templateLock: options.templateLock || false,
+    };
+
+    // Filter out unknown props for InnerBlocks
+    const supportedProps = [
+      "allowedBlocks",
+      "template",
+      "templateLock",
+      "key",
+    ];
+
+    const filteredProps = Object.keys(innerBlocksProps)
+      .filter((key) => supportedProps.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = innerBlocksProps[key];
+        return obj;
+      }, {});
+
+    return createElement(InnerBlocks, filteredProps);
   }
 
   // Expose improved renderer globally for FanCoolo blocks
@@ -353,28 +407,10 @@
 
           // Handle <innerblocks /> tags
           if (tagName === "innerblocks") {
-            const innerBlocksProps = {
-              key: generateStableKey("innerblocks", path),
-              allowedBlocks: options.allowedBlocks || null,
-              template: options.template || [],
-              templateLock: options.templateLock || false,
-            };
-
-            // Filter out unknown props for InnerBlocks
-            const supportedProps = [
-              "allowedBlocks",
-              "template",
-              "templateLock",
-              "key",
-            ];
-            const filteredProps = Object.keys(innerBlocksProps)
-              .filter((key) => supportedProps.includes(key))
-              .reduce((obj, key) => {
-                obj[key] = innerBlocksProps[key];
-                return obj;
-              }, {});
-
-            return createElement(InnerBlocks, filteredProps);
+            return createInnerBlocksElement(
+              options,
+              generateStableKey("innerblocks", path)
+            );
           }
 
           // Handle <div class="fancoolo-block-inserter"> elements
@@ -383,28 +419,10 @@
             domNode.classList &&
             domNode.classList.contains("fancoolo-block-inserter")
           ) {
-            const innerBlocksProps = {
-              key: generateStableKey("fancoolo-inserter", path),
-              allowedBlocks: options.allowedBlocks || null,
-              template: options.template || [],
-              templateLock: options.templateLock || false,
-            };
-
-            // Filter out unknown props for InnerBlocks
-            const supportedProps = [
-              "allowedBlocks",
-              "template",
-              "templateLock",
-              "key",
-            ];
-            const filteredProps = Object.keys(innerBlocksProps)
-              .filter((key) => supportedProps.includes(key))
-              .reduce((obj, key) => {
-                obj[key] = innerBlocksProps[key];
-                return obj;
-              }, {});
-
-            return createElement(InnerBlocks, filteredProps);
+            return createInnerBlocksElement(
+              options,
+              generateStableKey("fancoolo-inserter", path)
+            );
           }
 
           const children = [];
@@ -613,6 +631,9 @@
       const { useBlockProps } = wp.blockEditor;
       const { Spinner } = wp.components;
 
+      // Serialize parserOptions once - it shouldn't change during component lifecycle
+      const parserOptionsString = JSON.stringify(parserOptions);
+
       return function ServerRenderComponent(props) {
         const { attributes } = props;
         const [serverContent, setServerContent] = useState("");
@@ -705,6 +726,14 @@
 
         const blockProps = useBlockProps();
 
+        // Serialize blockProps for comparison (onlyClassName and style typically change)
+        const blockPropsKey = useMemo(() => {
+          return JSON.stringify({
+            className: blockProps.className,
+            style: blockProps.style,
+          });
+        }, [blockProps.className, blockProps.style]);
+
         // Memoize parsed content without blockProps to avoid pointless re-parses
         const parsedContent = useMemo(() => {
           if (!serverContent) return null;
@@ -713,7 +742,7 @@
             serverContent,
             parserOptions
           );
-        }, [serverContent, parserOptions]);
+        }, [serverContent, parserOptionsString]);
 
         // Apply blockProps to parsed content
         const renderedContent = useMemo(() => {
@@ -725,13 +754,15 @@
             {},
             parsedContent // Pass parsed content directly
           );
-        }, [parsedContent, blockProps]);
+        }, [parsedContent, blockPropsKey]);
 
-        if (!renderedContent) {
+        // Show spinner only on initial load, not on updates
+        if (!renderedContent && isLoading) {
           return createElement("div", blockProps, createElement(Spinner));
         }
 
-        return renderedContent;
+        // Return rendered content or empty div if no content yet
+        return renderedContent || createElement("div", blockProps);
       };
     },
   };
