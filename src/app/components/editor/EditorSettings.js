@@ -4,6 +4,7 @@ import { TrashIcon } from "../icons";
 import ScssPartialsCombined from "./ScssPartialsCombined";
 import InnerBlocksSettings from "./InnerBlocksSettings";
 import ScssPartialSettings from "./ScssPartialSettings";
+import Revisions from "./Revisions";
 import centralizedApi from "../../../utils/api/CentralizedApiService";
 
 const EditorSettings = ({
@@ -15,6 +16,7 @@ const EditorSettings = ({
   dataLoading,
   activeTab = "settings",
   onTabChange,
+  onRevisionApply,
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [description, setDescription] = useState("");
@@ -99,6 +101,8 @@ const EditorSettings = ({
     selectedPost?.terms?.some((term) => term.slug === "blocks") || false;
   const isScssPartial =
     selectedPost?.terms?.some((term) => term.slug === "scss-partials") || false;
+  const isSymbol =
+    selectedPost?.terms?.some((term) => term.slug === "symbols") || false;
   const postInfo = {
     id: selectedPost?.id,
     type: selectedPost?.terms?.[0]?.name || "N/A",
@@ -127,6 +131,35 @@ const EditorSettings = ({
               onClick={() => onTabChange?.("partials")}
             >
               SCSS Partials
+            </Button>
+            <Button
+              variant={activeTab === "revisions" ? "primary" : "ghost"}
+              className="grow px-3 py-2 text-xs font-medium border-b-2 transition-colors"
+              onClick={() => onTabChange?.("revisions")}
+            >
+              Revisions
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab Navigation for Symbols and SCSS Partials */}
+      {(isSymbol || isScssPartial) && (
+        <div className="p-3">
+          <div className="flex p-1 border border-solid border-outline rounded-md bg-base-2">
+            <Button
+              variant={activeTab === "settings" ? "primary" : "ghost"}
+              className="grow px-3 py-2 text-xs font-medium border-b-2 transition-colors"
+              onClick={() => onTabChange?.("settings")}
+            >
+              Settings
+            </Button>
+            <Button
+              variant={activeTab === "revisions" ? "primary" : "ghost"}
+              className="grow px-3 py-2 text-xs font-medium border-b-2 transition-colors"
+              onClick={() => onTabChange?.("revisions")}
+            >
+              Revisions
             </Button>
           </div>
         </div>
@@ -242,6 +275,11 @@ const EditorSettings = ({
               dataLoading={dataLoading}
             />
           </div>
+        )}
+
+        {/* Revisions Tab */}
+        {activeTab === "revisions" && (
+          <Revisions selectedPost={selectedPost} onRevisionApply={onRevisionApply} />
         )}
       </div>
     </aside>

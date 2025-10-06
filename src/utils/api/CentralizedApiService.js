@@ -259,6 +259,88 @@ class CentralizedApiService {
     }
   }
 
+  /**
+   * Get revisions for a post
+   */
+  async getRevisions(postId) {
+    // Don't cache revisions - always fetch fresh
+    const response = await this.apiClient.request(`/revisions/${postId}`, {
+      method: 'GET',
+      noCache: true,
+    });
+
+    // Handle unified API response format
+    if (response.success !== undefined && response.data !== undefined) {
+      return response;
+    }
+
+    // Old format: wrap in standard format
+    return { success: true, data: response };
+  }
+
+  /**
+   * Create a new revision
+   */
+  async createRevision(postId, name) {
+    const response = await this.apiClient.request('/revisions', {
+      method: 'POST',
+      body: JSON.stringify({
+        post_id: postId,
+        name: name,
+      }),
+    });
+
+    // Handle unified API response format
+    if (response.success !== undefined && response.data !== undefined) {
+      return response;
+    }
+
+    // Old format: wrap in standard format
+    return { success: true, data: response };
+  }
+
+  /**
+   * Apply a revision to restore previous state
+   */
+  async applyRevision(revisionId) {
+    const response = await this.apiClient.request(`/revisions/${revisionId}/apply`, {
+      method: 'POST',
+    });
+
+    // Handle unified API response format
+    const result = response.success !== undefined && response.data !== undefined
+      ? response
+      : { success: true, data: response };
+
+    const targetPostId = result?.data?.post_id ?? result?.data?.postId ?? null;
+
+    // Invalidate all caches for the affected post
+    if (targetPostId) {
+      this.invalidatePostCaches(targetPostId);
+      this.invalidatePostsCollectionCaches();
+      this.invalidateScssPartialCaches();
+    }
+
+    return result;
+  }
+
+  /**
+   * Delete a revision
+   */
+  async deleteRevision(revisionId) {
+    const response = await this.apiClient.request(`/revisions/${revisionId}`, {
+      method: 'DELETE',
+    });
+
+    // Handle unified API response format
+    if (response.success !== undefined && response.data !== undefined) {
+      return response;
+    }
+
+    // Old format: wrap in standard format
+    return { success: true, data: response };
+  }
+
   invalidatePostCaches(postId) {
     if (!postId) {
       return;

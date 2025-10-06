@@ -233,6 +233,24 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
   // Use the wrapped save function
   const handleSave = saveWithHotReload;
 
+  // Handle revision apply - reload post data after applying revision
+  const handleRevisionApply = async (postId) => {
+    try {
+      // Reload the post with related data
+      await postOperations.handlePostSelect({ id: postId });
+
+      // Show success message
+      setToastMessage("Revision applied successfully");
+      setToastTitle("Success");
+      setShowToast(true);
+    } catch (error) {
+      console.error("Error reloading post after revision apply:", error);
+      setToastMessage("Revision applied but failed to reload post data");
+      setToastTitle("Warning");
+      setShowToast(true);
+    }
+  };
+
   useEffect(() => {
     // Load all shared data with cache warming on app initialization
     loadAllData();
@@ -241,7 +259,7 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
   // Sync URL params with state - restore tab from URL on mount
   useEffect(() => {
     const tab = searchParams?.get('tab');
-    if (tab && ['settings', 'partials'].includes(tab)) {
+    if (tab && ['settings', 'partials', 'revisions'].includes(tab)) {
       setSettingsTab(tab);
     }
   }, [searchParams]);
@@ -360,6 +378,7 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
             dataLoading={dataLoading}
             activeTab={settingsTab}
             onTabChange={setSettingsTab}
+            onRevisionApply={handleRevisionApply}
           />
         </div>
       </div>
