@@ -23,6 +23,7 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
   const [saveStatus, setSaveStatus] = useState("");
   const [toastMessage, setToastMessage] = useState(null);
   const [toastTitle, setToastTitle] = useState("");
+  const [toastType, setToastType] = useState("error");
   const [showToast, setShowToast] = useState(false);
   const [settingsTab, setSettingsTab] = useState("settings"); // Settings sidebar tab state
 
@@ -39,7 +40,8 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
     metaData,
     setToastMessage,
     setToastTitle,
-    setShowToast
+    setShowToast,
+    setToastType
   );
 
   // Post operations hook - must be defined before useAppData
@@ -71,6 +73,7 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
       show: (notification) => {
         setToastMessage(notification.message);
         setToastTitle(notification.title || "Error");
+        setToastType(notification.type || "error");
         setShowToast(true);
       },
     });
@@ -81,6 +84,7 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
     setShowToast(false);
     setToastMessage(null);
     setToastTitle("");
+    setToastType("error");
   };
 
   // Update metadata change to set save status
@@ -203,6 +207,7 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
 
         setToastMessage(message);
         setToastTitle(hasRenderFailure ? "Block Render Error" : "Save Operation Failed");
+        setToastType("error");
         setShowToast(true);
         setSaveStatus("error");
 
@@ -242,11 +247,13 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
       // Show success message
       setToastMessage("Revision applied successfully");
       setToastTitle("Success");
+      setToastType("success");
       setShowToast(true);
     } catch (error) {
       console.error("Error reloading post after revision apply:", error);
       setToastMessage("Revision applied but failed to reload post data");
       setToastTitle("Warning");
+      setToastType("warning");
       setShowToast(true);
     }
   };
@@ -386,7 +393,7 @@ const EditorPage = ({ searchParams, setSearchParams }) => {
       {/* Toast for editor errors (SCSS compilation, PHP lint, etc.) */}
       <Toast
         message={toastMessage}
-        type="error"
+        type={toastType}
         title={toastTitle || "Error"}
         isVisible={toastIsVisible}
         onClose={handleToastClose}
