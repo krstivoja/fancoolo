@@ -843,7 +843,9 @@ class FunculoApiClient {
   generateCacheKey(endpoint, options) {
     const method = options.method || "GET";
     const body = options.body || "";
-    return `${method}:${endpoint}:${btoa(body).slice(0, 10)}`;
+    // Use encodeURIComponent instead of btoa to handle Unicode characters
+    const hash = encodeURIComponent(body).slice(0, 20);
+    return `${method}:${endpoint}:${hash}`;
   }
 
   /**
