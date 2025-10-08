@@ -288,13 +288,19 @@ class SanitizationService
      */
     public function sanitizeScssCode(string $code): string
     {
+        // Ensure string type
+        if (!is_string($code)) {
+            return '';
+        }
+
         // Apply length limit
         if (strlen($code) > self::MAX_LENGTHS['code']) {
             return '';
         }
 
-        // Basic sanitization for SCSS/CSS
-        return sanitize_textarea_field($code);
+        // For code fields, preserve exact content without HTML escaping
+        // sanitize_textarea_field() would convert < to &lt;, & to &amp;, etc., breaking the code
+        return $code;
     }
 
     /**
@@ -305,13 +311,19 @@ class SanitizationService
      */
     public function sanitizeJsCode(string $code): string
     {
+        // Ensure string type
+        if (!is_string($code)) {
+            return '';
+        }
+
         // Apply length limit
         if (strlen($code) > self::MAX_LENGTHS['code']) {
             return '';
         }
 
-        // Basic sanitization for JavaScript
-        return sanitize_textarea_field($code);
+        // For code fields, preserve exact content without HTML escaping
+        // sanitize_textarea_field() would convert < to &lt;, && to &amp;&amp;, ' to &#039;, etc., breaking the code
+        return $code;
     }
 
     /**
