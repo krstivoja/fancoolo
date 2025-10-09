@@ -103,9 +103,7 @@ const ScssPartialsManager = ({
       text: partial.title
     }));
 
-  const statusText = selectedPartials.length > 0
-    ? `${selectedPartials.length} partial${selectedPartials.length !== 1 ? 's' : ''} selected`
-    : 'No partials selected. Select from existing partials.';
+  const statusText = `${selectedPartials.length} partial${selectedPartials.length !== 1 ? 's' : ''} selected`;
 
   return (
     <div className="flex flex-col h-full">
@@ -145,9 +143,11 @@ const ScssPartialsManager = ({
           placeholder="Select from existing partials..."
         />
 
-        <p className="text-xs text-contrast mt-2">
-          {statusText}
-        </p>
+        {selectedPartials.length > 0 && (
+          <p className="text-xs text-contrast mt-2">
+            {statusText}
+          </p>
+        )}
 
         {availablePartials.length === 0 && !loading && (
           <p className="text-xs text-warning mt-2">

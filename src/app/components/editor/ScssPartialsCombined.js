@@ -25,10 +25,7 @@ const ScssPartialsCombined = ({
       {globalPartials.length > 0 && (
         <div>
           <h4 className="font-medium text-highlight mb-3 flex items-center gap-2">
-            🌍 Global Partials
-            <span className="text-xs bg-action text-white px-2 py-1 rounded">
-              Auto-included
-            </span>
+            Global Partials
           </h4>
           <div className="space-y-2">
             {globalPartials.map((partial) => (

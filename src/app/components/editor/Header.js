@@ -147,7 +147,7 @@ const Header = ({ onSave, saveStatus, onPostsRefresh }) => {
               onClick={() => navigate("/settings")}
               className={isSettingsPage ? "bg-action/10" : ""}
             >
-              Settings
+              Settings. ⛱️ Soon
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => navigate("/licence")}
@@ -155,14 +155,14 @@ const Header = ({ onSave, saveStatus, onPostsRefresh }) => {
             >
               Licence
             </DropdownMenuItem>
-            {ENABLE_DESIGN_SYSTEM && (
+            {/* {ENABLE_DESIGN_SYSTEM && (
               <DropdownMenuItem
                 onClick={() => navigate("/design-system")}
                 className={isDesignSystemPage ? "bg-action/10" : ""}
               >
                 Design System
               </DropdownMenuItem>
-            )}
+            )} */}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleRegenerateAll}
