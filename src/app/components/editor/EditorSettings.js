@@ -168,7 +168,7 @@ const EditorSettings = ({
       {/* Tab Content */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Settings Tab */}
-        {(!isBlockType || activeTab === "settings") && (
+        {activeTab === "settings" && (
           <div className="flex-1 p-4 overflow-y-auto">
             <div className="space-y-4">
               <div className="text-sm text-contrast space-y-2">
