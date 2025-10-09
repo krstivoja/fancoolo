@@ -65,6 +65,11 @@ class BlocksMetaBox extends AbstractMetaBox
                         // PHP code validation failed - skip saving this field
                         continue;
                     }
+                } elseif ($field === '_funculo_block_js' || $field === '_funculo_block_scss') {
+                    // Code fields: preserve exact content, only remove WordPress slashes
+                    // DO NOT use sanitize_textarea_field as it HTML-escapes < > & ' " which breaks code
+                    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verification handled in parent canSave() method
+                    $value = wp_unslash($_POST[$field]);
                 } else {
                     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verification handled in parent canSave() method
                     $value = sanitize_textarea_field(wp_unslash($_POST[$field]));

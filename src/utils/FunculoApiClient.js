@@ -856,6 +856,7 @@ class FunculoApiClient {
     }
 
     return `${method}:${endpoint}:${Math.abs(hash).toString(36).slice(0, 10)}`;
+
   }
 
   /**
