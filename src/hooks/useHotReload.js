@@ -142,7 +142,7 @@ export const useHotReloadSave = (postId, originalSaveFunction, postType) => {
         postId &&
         postType !== "scss-partials"
       ) {
-        console.log("🚀 Triggering hot reload...");
+        // console.log("🚀 Triggering hot reload...");
         await window.fancooloSimpleHotReload.onStudioSave(
           postId,
           null,
