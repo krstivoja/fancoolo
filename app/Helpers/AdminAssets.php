@@ -72,6 +72,7 @@ class AdminAssets
                 'root' => esc_url_raw(rest_url()),
                 'nonce' => wp_create_nonce('wp_rest'),
                 'posts' => $posts_data,
+                'siteUrl' => esc_url_raw(site_url()),
             ]), 'after');
 
             // Output plugin URL for SCSS compiler and other assets
