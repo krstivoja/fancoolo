@@ -132,7 +132,7 @@ const Header = ({ onSave, saveStatus, onPostsRefresh }) => {
           <SaveButton saveStatus={saveStatus} onSave={onSave} />
           <DropdownMenu
             trigger={
-              <Button variant="ghost" className="px-3">
+              <Button variant="secondary" className="px-3">
                 ⋮
               </Button>
             }
