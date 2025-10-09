@@ -148,12 +148,15 @@ class FunculoApiClient {
     const timer = this.performanceMonitor.startTiming(`request:${endpoint}`);
     this.stats.requests++;
 
+    const { noCache = false, ...requestOptions } = options;
+
     try {
       // Generate cache key for this request
-      const cacheKey = this.generateCacheKey(endpoint, options);
+      const cacheKey = this.generateCacheKey(endpoint, requestOptions);
+      const useCache = !noCache && this.shouldUseCache(requestOptions.method);
 
       // Check cache first (only for GET requests)
-      if (this.shouldUseCache(options.method)) {
+      if (useCache) {
         const cachedData = this.getFromCache(cacheKey);
         if (cachedData) {
           this.stats.cacheHits++;
@@ -169,14 +172,14 @@ class FunculoApiClient {
       }
 
       // Make the actual request with retry logic
-      const requestPromise = this.makeRequestWithRetry(endpoint, options);
+      const requestPromise = this.makeRequestWithRetry(endpoint, requestOptions);
       this.pendingRequests.set(cacheKey, requestPromise);
 
       try {
         const response = await requestPromise;
 
         // Cache successful GET responses
-        if (this.shouldUseCache(options.method) && response) {
+        if (useCache && response) {
           this.setInCache(cacheKey, response);
         }
 

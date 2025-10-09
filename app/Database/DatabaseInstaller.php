@@ -10,6 +10,7 @@ class DatabaseInstaller
     const SCSS_TABLE_NAME = 'fancoolo_scsspartials_settings';
     const ATTRIBUTES_TABLE_NAME = 'fancoolo_blocks_attributes';
     const PARTIALS_USAGE_TABLE_NAME = 'fancoolo_partials_usage';
+    const REVISIONS_TABLE_NAME = 'fancoolo_revisions';
 
     /**
      * Install the database tables
@@ -32,8 +33,9 @@ class DatabaseInstaller
         $scss_created = self::createScssTableIfMissing();
         $attributes_created = self::createAttributesTableIfMissing();
         $partials_usage_created = self::createPartialsUsageTableIfMissing();
+        $revisions_created = self::createRevisionsTableIfMissing();
 
-        if ($blocks_created || $scss_created || $attributes_created || $partials_usage_created) {
+        if ($blocks_created || $scss_created || $attributes_created || $partials_usage_created || $revisions_created) {
             error_log('FanCoolo Plugin: Missing tables were created');
         }
     }
@@ -222,6 +224,45 @@ class DatabaseInstaller
     }
 
     /**
+     * Create revisions table if it doesn't exist
+     */
+    public static function createRevisionsTableIfMissing(): bool
+    {
+        global $wpdb;
+
+        $revisions_table = self::getRevisionsTableName();
+
+        // Check if table already exists
+        if (self::specificTableExists($revisions_table)) {
+            return false;
+        }
+
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql_revisions = "CREATE TABLE $revisions_table (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            post_id bigint(20) UNSIGNED NOT NULL,
+            revision_name varchar(255) NOT NULL,
+            revision_data longtext NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY post_id (post_id),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        $result = dbDelta($sql_revisions);
+
+        if (!empty($wpdb->last_error)) {
+            error_log('FanCoolo Plugin: Failed to create revisions table - ' . $wpdb->last_error);
+            return false;
+        }
+
+        error_log('FanCoolo Plugin: Revisions table created successfully');
+        return true;
+    }
+
+    /**
      * Uninstall the database tables
      */
     public static function uninstall(): void
@@ -244,7 +285,11 @@ class DatabaseInstaller
         $usage_table = self::getPartialsUsageTableName();
         $result4 = $wpdb->query("DROP TABLE IF EXISTS $usage_table");
 
-        if ($result1 === false || $result2 === false || $result3 === false || $result4 === false) {
+        // Drop revisions table
+        $revisions_table = self::getRevisionsTableName();
+        $result5 = $wpdb->query("DROP TABLE IF EXISTS $revisions_table");
+
+        if ($result1 === false || $result2 === false || $result3 === false || $result4 === false || $result5 === false) {
             error_log('FanCoolo Plugin: Failed to drop tables - ' . $wpdb->last_error);
         } else {
             error_log('FanCoolo Plugin: Database tables uninstalled successfully');
@@ -362,6 +407,15 @@ class DatabaseInstaller
     }
 
     /**
+     * Get revisions table name with prefix
+     */
+    public static function getRevisionsTableName(): string
+    {
+        global $wpdb;
+        return $wpdb->prefix . self::REVISIONS_TABLE_NAME;
+    }
+
+    /**
      * Check if tables exist
      */
     public static function tableExists(): bool
@@ -371,13 +425,15 @@ class DatabaseInstaller
         $scss_table = self::getScssPartialsTableName();
         $attributes_table = self::getAttributesTableName();
         $usage_table = self::getPartialsUsageTableName();
+        $revisions_table = self::getRevisionsTableName();
 
         $blocks_exists = $wpdb->get_var("SHOW TABLES LIKE '$blocks_table'") === $blocks_table;
         $scss_exists = $wpdb->get_var("SHOW TABLES LIKE '$scss_table'") === $scss_table;
         $attributes_exists = $wpdb->get_var("SHOW TABLES LIKE '$attributes_table'") === $attributes_table;
         $usage_exists = $wpdb->get_var("SHOW TABLES LIKE '$usage_table'") === $usage_table;
+        $revisions_exists = $wpdb->get_var("SHOW TABLES LIKE '$revisions_table'") === $revisions_table;
 
-        return $blocks_exists && $scss_exists && $attributes_exists && $usage_exists;
+        return $blocks_exists && $scss_exists && $attributes_exists && $usage_exists && $revisions_exists;
     }
 
     /**
@@ -398,6 +454,7 @@ class DatabaseInstaller
         $scss_table = self::getScssPartialsTableName();
         $attributes_table = self::getAttributesTableName();
         $usage_table = self::getPartialsUsageTableName();
+        $revisions_table = self::getRevisionsTableName();
 
         return [
             'blocks_table' => [
@@ -415,6 +472,10 @@ class DatabaseInstaller
             'usage_table' => [
                 'name' => $usage_table,
                 'exists' => self::specificTableExists($usage_table)
+            ],
+            'revisions_table' => [
+                'name' => $revisions_table,
+                'exists' => self::specificTableExists($revisions_table)
             ],
             'all_exist' => self::tableExists(),
             'version' => get_option(self::VERSION_OPTION, 'not_set')

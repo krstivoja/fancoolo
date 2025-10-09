@@ -11,7 +11,8 @@ export const useScssCompilation = (
   metaData,
   setToastMessage,
   setToastTitle,
-  setShowToast
+  setShowToast,
+  setToastType
 ) => {
   // Get current partials data for compilation
   const getCurrentPartials = useMemo(() => {
@@ -122,11 +123,14 @@ export const useScssCompilation = (
         compilationError.message || "SCSS compilation failed";
       setToastMessage(errorMessage);
       setToastTitle("SCSS Compilation Error");
+      if (typeof setToastType === "function") {
+        setToastType("error");
+      }
       setShowToast(true);
       // Continue with normal save even if SCSS compilation fails
       return null;
     }
-  }, [selectedPost, metaData.blocks?.scss, getCurrentPartials, setToastMessage, setToastTitle, setShowToast]);
+  }, [selectedPost, metaData.blocks?.scss, getCurrentPartials, setToastMessage, setToastTitle, setShowToast, setToastType]);
 
   /**
    * Compile editor SCSS with partials support
@@ -224,11 +228,14 @@ export const useScssCompilation = (
         compilationError.message || "Editor SCSS compilation failed";
       setToastMessage(errorMessage);
       setToastTitle("SCSS Compilation Error");
+      if (typeof setToastType === "function") {
+        setToastType("error");
+      }
       setShowToast(true);
       // Continue with normal save even if editor SCSS compilation fails
       return null;
     }
-  }, [selectedPost, metaData.blocks?.editorScss, metaData.blocks?.editor_selected_partials, metaData.blocks?.editorSelectedPartials, setToastMessage, setToastTitle, setShowToast]);
+  }, [selectedPost, metaData.blocks?.editorScss, metaData.blocks?.editor_selected_partials, metaData.blocks?.editorSelectedPartials, setToastMessage, setToastTitle, setShowToast, setToastType]);
 
   /**
    * Compile both frontend and editor SCSS
