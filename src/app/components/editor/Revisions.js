@@ -4,9 +4,15 @@ import { TrashIcon } from "../icons";
 import { useRevisions } from "../../hooks";
 
 const Revisions = ({ selectedPost, onRevisionApply }) => {
-  const { revisions, loading, applying, loadRevisions, createRevision, applyRevision, deleteRevision } = useRevisions(
-    selectedPost?.id
-  );
+  const {
+    revisions,
+    loading,
+    applying,
+    loadRevisions,
+    createRevision,
+    applyRevision,
+    deleteRevision,
+  } = useRevisions(selectedPost?.id);
 
   const [revisionName, setRevisionName] = useState("");
   const [selectedRevision, setSelectedRevision] = useState("current");
@@ -26,7 +32,7 @@ const Revisions = ({ selectedPost, onRevisionApply }) => {
 
   const handleCreateRevision = async () => {
     if (!revisionName.trim()) {
-      alert("Please enter a revision name");
+      alert("Please enter a revision title");
       return;
     }
 
@@ -73,7 +79,9 @@ const Revisions = ({ selectedPost, onRevisionApply }) => {
   };
 
   const handleDeleteRevision = async (revisionId, revisionName) => {
-    const confirmed = window.confirm(`Are you sure you want to delete the revision "${revisionName}"?`);
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the revision "${revisionName}"?`
+    );
 
     if (!confirmed) {
       return;
@@ -92,7 +100,14 @@ const Revisions = ({ selectedPost, onRevisionApply }) => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return "No date";
+
     const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) {
+      return "Invalid date";
+    }
+
     return date.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
@@ -110,32 +125,32 @@ const Revisions = ({ selectedPost, onRevisionApply }) => {
     <div className="flex-1 p-4 overflow-y-auto">
       <div className="space-y-6">
         {/* Create Revision Section */}
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <h4 className="font-medium text-highlight">Create Revision</h4>
-          <div className="space-y-2">
-            <Input
-              type="text"
-              value={revisionName}
-              onChange={(e) => setRevisionName(e.target.value)}
-              placeholder="Enter revision name..."
-              disabled={isCreating}
-            />
-            <Button
-              onClick={handleCreateRevision}
-              disabled={isCreating || !revisionName.trim()}
-              variant="primary"
-              className="w-full"
-            >
-              {isCreating ? "Creating..." : "Save Revision"}
-            </Button>
-          </div>
+          <Input
+            type="text"
+            value={revisionName}
+            onChange={(e) => setRevisionName(e.target.value)}
+            placeholder="Enter revision title..."
+            disabled={isCreating}
+          />
+          <Button
+            onClick={handleCreateRevision}
+            disabled={isCreating || !revisionName.trim()}
+            variant="primary"
+            className="w-full"
+          >
+            {isCreating ? "Creating..." : "Save Revision"}
+          </Button>
         </div>
 
         {/* Revisions List */}
         <div className="space-y-3">
           <h4 className="font-medium text-highlight">Revision History</h4>
 
-          {loading && <p className="text-sm text-contrast">Loading revisions...</p>}
+          {loading && (
+            <p className="text-sm text-contrast">Loading revisions...</p>
+          )}
 
           {!loading && (
             <div className="space-y-2">
@@ -149,12 +164,16 @@ const Revisions = ({ selectedPost, onRevisionApply }) => {
                   onChange={(e) => setSelectedRevision(e.target.value)}
                   className="flex-shrink-0"
                 />
-                <span className="flex-1 font-medium text-highlight">Current</span>
+                <span className="flex-1 font-medium text-highlight">
+                  Current
+                </span>
               </label>
 
               {/* Saved Revisions */}
               {revisions.length === 0 && (
-                <p className="text-sm text-contrast p-3 text-center">No revisions yet. Create one to get started!</p>
+                <p className="text-sm text-contrast p-3 text-center">
+                  No revisions yet. Create one to get started!
+                </p>
               )}
 
               {revisions.map((revision) => (
@@ -167,17 +186,23 @@ const Revisions = ({ selectedPost, onRevisionApply }) => {
                     name="revision"
                     value={revision.id}
                     checked={selectedRevision === revision.id}
-                    onChange={(e) => setSelectedRevision(parseInt(e.target.value))}
+                    onChange={(e) =>
+                      setSelectedRevision(parseInt(e.target.value))
+                    }
                     className="flex-shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-highlight truncate">{revision.revision_name}</div>
-                    <div className="text-xs text-contrast">{formatDate(revision.created_at)}</div>
+                    <div className="font-medium text-highlight truncate">
+                      {revision.revisionName || "Untitled Revision"}
+                    </div>
+                    <div className="text-xs text-contrast mt-1">
+                      {formatDate(revision.createdAt)}
+                    </div>
                   </div>
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      handleDeleteRevision(revision.id, revision.revision_name);
+                      handleDeleteRevision(revision.id, revision.revisionName);
                     }}
                     className="flex-shrink-0 p-2 text-contrast hover:text-highlight transition-colors"
                     title="Delete revision"
@@ -192,7 +217,12 @@ const Revisions = ({ selectedPost, onRevisionApply }) => {
 
         {/* Apply Button */}
         {selectedRevision !== "current" && (
-          <Button onClick={handleApplyRevision} disabled={applying} variant="primary" className="w-full">
+          <Button
+            onClick={handleApplyRevision}
+            disabled={applying}
+            variant="primary"
+            className="w-full"
+          >
             {applying ? "Applying..." : "Apply State"}
           </Button>
         )}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Toggle } from '../ui';
+import React, { useState, useEffect } from "react";
+import { Toggle, Input } from "../ui";
 
 const ScssPartialSettings = ({ selectedPost, metaData, onMetaChange }) => {
   const [isGlobal, setIsGlobal] = useState(false);
@@ -11,9 +11,10 @@ const ScssPartialSettings = ({ selectedPost, metaData, onMetaChange }) => {
   useEffect(() => {
     if (scssPartials.is_global !== undefined) {
       // Handle string '1'/'0', number 1/0, or boolean true/false
-      const isGlobalValue = scssPartials.is_global === '1' ||
-                           scssPartials.is_global === 1 ||
-                           scssPartials.is_global === true;
+      const isGlobalValue =
+        scssPartials.is_global === "1" ||
+        scssPartials.is_global === 1 ||
+        scssPartials.is_global === true;
       setIsGlobal(isGlobalValue);
     } else {
       // Default to false if not set
@@ -33,9 +34,9 @@ const ScssPartialSettings = ({ selectedPost, metaData, onMetaChange }) => {
   const updateGlobalSettings = (newIsGlobal, newGlobalOrder) => {
     if (onMetaChange) {
       // Update the is_global field
-      onMetaChange('scss_partials', 'is_global', newIsGlobal ? '1' : '0');
+      onMetaChange("scss_partials", "is_global", newIsGlobal ? "1" : "0");
       // Update the global_order field
-      onMetaChange('scss_partials', 'global_order', String(newGlobalOrder));
+      onMetaChange("scss_partials", "global_order", String(newGlobalOrder));
     }
   };
 
@@ -52,37 +53,32 @@ const ScssPartialSettings = ({ selectedPost, metaData, onMetaChange }) => {
   };
 
   return (
-    <div className="space-y-4 pt-4 border-t border-outline">
-      <h4 className="font-medium text-highlight">Global Settings</h4>
+    <div className="space-y-4">
+      <h4 className="font-medium text-highlight">Global SCSS Partials</h4>
 
       <div className="space-y-3">
         <Toggle
           checked={isGlobal}
           onChange={handleGlobalToggle}
-          label="🌍 Global partial (auto-include in all blocks)"
+          label="Include in all blocks"
         />
 
         {isGlobal && (
-          <div className="ml-6">
+          <div className="mt-4">
             <label className="block text-sm font-medium text-contrast mb-1">
               Load Order
             </label>
-            <input
+            <Input
               type="number"
               value={globalOrder}
               onChange={handleGlobalOrderChange}
               min="1"
-              className="w-20 px-2 py-1 text-sm border border-outline rounded bg-base-2 text-highlight"
             />
             <p className="text-xs text-contrast mt-1">
               Lower numbers load first
             </p>
           </div>
         )}
-
-        <p className="text-xs text-contrast">
-          Global partials are automatically included in all blocks
-        </p>
       </div>
     </div>
   );

@@ -161,6 +161,8 @@ class CaseTransformer
             'step_value' => 'stepValue',
             'created_at' => 'createdAt',
             'updated_at' => 'updatedAt',
+            'revision_name' => 'revisionName',
+            'revision_data' => 'revisionData',
         ];
 
         return self::applyFieldMappings($data, $fieldMappings);

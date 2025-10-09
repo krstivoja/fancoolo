@@ -26,6 +26,8 @@ const useRevisions = (postId) => {
 
     try {
       const response = await centralizedApi.getRevisions(postId);
+      console.log('Revisions API response:', response);
+      console.log('Revisions data:', response?.data);
       setRevisions(response?.data || []);
     } catch (err) {
       console.error("Error loading revisions:", err);

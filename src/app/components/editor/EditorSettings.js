@@ -171,7 +171,7 @@ const EditorSettings = ({
         {activeTab === "settings" && (
           <div className="flex-1 p-4 overflow-y-auto">
             <div className="space-y-4">
-              <div className="text-sm text-contrast space-y-2">
+              {/* <div className="text-sm text-contrast space-y-2">
                 <div>
                   <strong>ID:</strong> {postInfo.id}
                 </div>
@@ -181,7 +181,7 @@ const EditorSettings = ({
                 <div>
                   <strong>Slug:</strong> {postInfo.slug}
                 </div>
-              </div>
+              </div> */}
 
               {/* SCSS Partial Settings */}
               {isScssPartial && (
@@ -279,7 +279,10 @@ const EditorSettings = ({
 
         {/* Revisions Tab */}
         {activeTab === "revisions" && (
-          <Revisions selectedPost={selectedPost} onRevisionApply={onRevisionApply} />
+          <Revisions
+            selectedPost={selectedPost}
+            onRevisionApply={onRevisionApply}
+          />
         )}
       </div>
     </aside>
