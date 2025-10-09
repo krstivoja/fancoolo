@@ -4,4 +4,5 @@ export { default as SettingsIcon } from "./SettingsIcon";
 export { default as StyleIcon } from "./StyleIcon";
 export { default as SymbolIcon } from "./SymbolIcon";
 export { default as TrashIcon } from "./TrashIcon";
+export { default as CopyIcon } from "./CopyIcon";
 export { default as WordPressIcon } from "./WordPressIcon";
