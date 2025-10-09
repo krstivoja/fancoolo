@@ -846,7 +846,16 @@ class FunculoApiClient {
   generateCacheKey(endpoint, options) {
     const method = options.method || "GET";
     const body = options.body || "";
-    return `${method}:${endpoint}:${btoa(body).slice(0, 10)}`;
+
+    // Use a simple hash instead of btoa to avoid Unicode issues
+    let hash = 0;
+    for (let i = 0; i < body.length; i++) {
+      const char = body.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+
+    return `${method}:${endpoint}:${Math.abs(hash).toString(36).slice(0, 10)}`;
   }
 
   /**
