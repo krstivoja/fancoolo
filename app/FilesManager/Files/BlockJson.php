@@ -150,7 +150,7 @@ class BlockJson implements FileGeneratorInterface
         $blockJson['textdomain'] = 'fancoolo';
 
         // Conditionally add asset files only if they exist
-        $this->addConditionalAssets($blockJson, $outputPath, $post->ID);
+        $this->addConditionalAssets($blockJson, $outputPath, $post->ID, $dbSettings);
 
         // Add attributes using AttributeMapper for consistent schema generation
         $attributeSchema = AttributeMapper::generateAttributeSchema($post->ID);
@@ -174,16 +174,16 @@ class BlockJson implements FileGeneratorInterface
      * @param array &$blockJson Block configuration array
      * @param string $outputPath Output directory path
      * @param int $postId Post ID for checking meta content
+     * @param array|null $dbSettings Database settings for the block
      */
-    private function addConditionalAssets(array &$blockJson, string $outputPath, int $postId): void
+    private function addConditionalAssets(array &$blockJson, string $outputPath, int $postId, ?array $dbSettings): void
     {
-        // Define potential asset files
+        // Define potential asset files (excluding view.js which is handled separately)
         $assetFiles = [
             'editorScript' => 'index.js',
             'style' => 'style.css',
             'editorStyle' => 'editor.css',
             'render' => 'render.php',
-            'viewScriptModule' => 'view.js'
         ];
 
         foreach ($assetFiles as $property => $filename) {
@@ -192,6 +192,19 @@ class BlockJson implements FileGeneratorInterface
             // Only add the asset if file exists or will be generated
             if (file_exists($filePath) || $this->willFileBeGenerated($filename, $postId)) {
                 $blockJson[$property] = 'file:./' . $filename;
+            }
+        }
+
+        // Handle view.js separately based on view_script_module setting
+        $viewJsPath = $outputPath . '/view.js';
+        if (file_exists($viewJsPath) || $this->willFileBeGenerated('view.js', $postId)) {
+            // Check if module mode is enabled (default to false if not set)
+            $useModule = $dbSettings['view_script_module'] ?? false;
+
+            if ($useModule) {
+                $blockJson['viewScriptModule'] = 'file:./view.js';
+            } else {
+                $blockJson['viewScript'] = 'file:./view.js';
             }
         }
     }

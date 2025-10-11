@@ -236,7 +236,8 @@ class StandardBulkPipeline
             $blockSettings = [
                 'category' => $dbSettings['category'],
                 'description' => $dbSettings['description'],
-                'icon' => $dbSettings['icon']
+                'icon' => $dbSettings['icon'],
+                'viewScriptModule' => $dbSettings['view_script_module']
             ];
 
             // Format inner blocks settings

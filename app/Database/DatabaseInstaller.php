@@ -68,6 +68,7 @@ class DatabaseInstaller
             template_lock varchar(50) DEFAULT NULL,
             selected_partials text DEFAULT NULL,
             editor_selected_partials text DEFAULT NULL,
+            view_script_module tinyint(1) DEFAULT 0,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),

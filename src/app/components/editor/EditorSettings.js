@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Textarea, Select, DashiconButton, Button } from "../ui";
+import { Textarea, Select, DashiconButton, Button, Toggle } from "../ui";
 import { TrashIcon } from "../icons";
 import ScssPartialsCombined from "./ScssPartialsCombined";
 import InnerBlocksSettings from "./InnerBlocksSettings";
@@ -22,6 +22,7 @@ const EditorSettings = ({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [icon, setIcon] = useState("search");
+  const [viewScriptModule, setViewScriptModule] = useState(false);
 
   const blockCategories = sharedData?.blockCategories || [];
   const loadingCategories = dataLoading?.blockCategories || false;
@@ -33,18 +34,21 @@ const EditorSettings = ({
       setDescription(settings.description || "");
       setCategory(settings.category || "");
       setIcon(settings.icon || "search");
+      setViewScriptModule(settings.viewScriptModule === true || settings.viewScriptModule === 1 || settings.viewScriptModule === '1');
     } catch (e) {
       setDescription("");
       setCategory("");
       setIcon("search");
+      setViewScriptModule(false);
     }
   }, [metaData?.blocks?.settings]);
 
-  const updateSettings = (newDescription, newCategory, newIcon) => {
+  const updateSettings = (newDescription, newCategory, newIcon, newViewScriptModule) => {
     const updatedSettings = {
       description: newDescription,
       category: newCategory,
       icon: newIcon,
+      viewScriptModule: newViewScriptModule,
     };
 
     if (onMetaChange) {
@@ -55,18 +59,24 @@ const EditorSettings = ({
   const handleDescriptionChange = (e) => {
     const newDescription = e.target.value;
     setDescription(newDescription);
-    updateSettings(newDescription, category, icon);
+    updateSettings(newDescription, category, icon, viewScriptModule);
   };
 
   const handleCategoryChange = (e) => {
     const newCategory = e.target.value;
     setCategory(newCategory);
-    updateSettings(description, newCategory, icon);
+    updateSettings(description, newCategory, icon, viewScriptModule);
   };
 
   const handleIconChange = (newIcon) => {
     setIcon(newIcon);
-    updateSettings(description, category, newIcon);
+    updateSettings(description, category, newIcon, viewScriptModule);
+  };
+
+  const handleViewScriptModuleChange = (e) => {
+    const newValue = e.target.checked;
+    setViewScriptModule(newValue);
+    updateSettings(description, category, icon, newValue);
   };
 
   const handleDelete = async () => {
@@ -242,6 +252,19 @@ const EditorSettings = ({
                       sharedData={sharedData}
                       dataLoading={dataLoading}
                     />
+                  </div>
+
+                  {/* View.js Settings */}
+                  <div className="pt-4 border-t border-outline space-y-3">
+                    <h4 className="font-medium text-highlight">View.js Settings</h4>
+                    <Toggle
+                      checked={viewScriptModule}
+                      onChange={handleViewScriptModuleChange}
+                      label="Enable Module"
+                    />
+                    <p className="text-sm text-contrast">
+                      Use ES module format (viewScriptModule) instead of classic script (viewScript) for view.js.
+                    </p>
                   </div>
                 </div>
               )}

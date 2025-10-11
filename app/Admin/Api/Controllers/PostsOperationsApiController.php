@@ -331,6 +331,7 @@ class PostsOperationsApiController extends BaseApiController
                     $dbSettings['category'] = $settingsData['category'] ?? null;
                     $dbSettings['description'] = $settingsData['description'] ?? null;
                     $dbSettings['icon'] = $settingsData['icon'] ?? null;
+                    $dbSettings['view_script_module'] = $settingsData['viewScriptModule'] ?? false;
                 }
             }
 

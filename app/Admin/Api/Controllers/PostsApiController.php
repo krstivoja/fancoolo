@@ -262,7 +262,8 @@ class PostsApiController extends BaseApiController
                 $blockSettings = [
                     'category' => $dbSettings['category'],
                     'description' => $dbSettings['description'],
-                    'icon' => $dbSettings['icon']
+                    'icon' => $dbSettings['icon'],
+                    'viewScriptModule' => $dbSettings['view_script_module']
                 ];
 
                 // Format inner blocks settings
@@ -280,9 +281,7 @@ class PostsApiController extends BaseApiController
                 $formattedMeta['blocks']['settings'] = json_encode($blockSettings);
                 $formattedMeta['blocks']['inner_blocks_settings'] = json_encode($innerBlocksSettings);
                 $selectedPartials = $dbSettings['selected_partials'] ?? [];
-                error_log("FanCoolo Debug: PostsApiController getPost - selected_partials type: " . gettype($selectedPartials) . ", is_array: " . (is_array($selectedPartials) ? 'YES' : 'NO') . ", count: " . (is_array($selectedPartials) ? count($selectedPartials) : 'N/A') . ", content: " . json_encode($selectedPartials));
                 $formattedMeta['blocks']['selected_partials'] = json_encode($selectedPartials);
-                error_log("FanCoolo Debug: PostsApiController getPost - final JSON to send: " . $formattedMeta['blocks']['selected_partials']);
                 $formattedMeta['blocks']['editor_selected_partials'] = json_encode($dbSettings['editor_selected_partials'] ?? []);
             }
         }
@@ -395,7 +394,8 @@ class PostsApiController extends BaseApiController
             $blockSettings = [
                 'category' => $defaultSettings['category'],
                 'description' => $defaultSettings['description'],
-                'icon' => $defaultSettings['icon']
+                'icon' => $defaultSettings['icon'],
+                'viewScriptModule' => false // Default to classic script for new blocks
             ];
 
             // Format inner blocks settings
@@ -493,13 +493,8 @@ class PostsApiController extends BaseApiController
 
             // Trigger file generation if meta was updated
             if (!empty($meta)) {
-                error_log("FanCoolo Debug: Starting file generation for post ID: $postId");
-                error_log("FanCoolo Debug: Meta data: " . print_r($meta, true));
-
                 $filesManagerService = new FilesManagerService();
-                $result = $filesManagerService->generateFilesOnPostSave($postId, $post, true);
-
-                error_log("FanCoolo Debug: File generation result: " . print_r($result, true));
+                $filesManagerService->generateFilesOnPostSave($postId, $post, true);
             }
 
             // Get updated post data using bulk operations for consistency

@@ -229,7 +229,9 @@ class SanitizationService
                 break;
             }
 
-            $sanitized_key = $this->sanitizeText($key, 'key');
+            // Preserve original key case for JSON data (allows camelCase)
+            // Only remove dangerous characters, don't lowercase
+            $sanitized_key = preg_replace('/[^a-zA-Z0-9_\-]/', '', $key);
 
             if (is_array($value)) {
                 $sanitized[$sanitized_key] = $this->sanitizeJsonData($value, $options, $depth + 1);

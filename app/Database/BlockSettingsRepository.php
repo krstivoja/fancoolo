@@ -93,6 +93,7 @@ class BlockSettingsRepository extends AbstractBulkRepository
 
         // Convert boolean fields to actual booleans
         $row['supports_inner_blocks'] = (bool) $row['supports_inner_blocks'];
+        $row['view_script_module'] = (bool) ($row['view_script_module'] ?? false);
 
         return $row;
     }
@@ -147,6 +148,12 @@ class BlockSettingsRepository extends AbstractBulkRepository
             $data['supports_inner_blocks'] = (int) $settings['supports_inner_blocks'];
         } elseif ($exists && isset($existingData['supports_inner_blocks'])) {
             $data['supports_inner_blocks'] = (int) $existingData['supports_inner_blocks'];
+        }
+
+        if (array_key_exists('view_script_module', $settings)) {
+            $data['view_script_module'] = (int) $settings['view_script_module'];
+        } elseif ($exists && isset($existingData['view_script_module'])) {
+            $data['view_script_module'] = (int) $existingData['view_script_module'];
         }
 
         if (array_key_exists('template_lock', $settings)) {
@@ -249,6 +256,7 @@ class BlockSettingsRepository extends AbstractBulkRepository
             if (!isset($data['description'])) $data['description'] = null;
             if (!isset($data['icon'])) $data['icon'] = null;
             if (!isset($data['supports_inner_blocks'])) $data['supports_inner_blocks'] = 0;
+            if (!isset($data['view_script_module'])) $data['view_script_module'] = 0;
             if (!isset($data['allowed_block_types'])) $data['allowed_block_types'] = null;
             if (!isset($data['template'])) $data['template'] = null;
             if (!isset($data['template_lock'])) $data['template_lock'] = null;
