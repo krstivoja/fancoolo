@@ -18,6 +18,8 @@ class BlockJson implements FileGeneratorInterface
 
     public function generate(int $postId, WP_Post $post, string $outputPath): bool
     {
+        $dbSettings = BlockSettingsRepository::get($postId) ?? [];
+
         // Verify and create output path if needed
         if (!is_dir($outputPath)) {
             if (!wp_mkdir_p($outputPath)) {
@@ -28,15 +30,7 @@ class BlockJson implements FileGeneratorInterface
 
         $attributes = get_post_meta($postId, MetaKeysConstants::BLOCK_ATTRIBUTES, true);
 
-        // Get settings from database
-        $dbSettings = BlockSettingsRepository::get($postId);
-        $settings = $dbSettings ? [
-            'category' => $dbSettings['category'],
-            'description' => $dbSettings['description'],
-            'icon' => $dbSettings['icon']
-        ] : [];
-
-        $blockJson = $this->buildBlockJson($post, $attributes, $settings, $outputPath, $dbSettings);
+        $blockJson = $this->buildBlockJson($post, $attributes, $dbSettings, $outputPath);
         $filepath = $outputPath . '/' . $this->getGeneratedFileName($post);
 
         $result = file_put_contents($filepath, wp_json_encode($blockJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -69,23 +63,21 @@ class BlockJson implements FileGeneratorInterface
         return true; // block.json is always generated for blocks
     }
 
-    private function buildBlockJson(WP_Post $post, $attributes, $settings, string $outputPath, ?array $dbSettings): array
+    private function buildBlockJson(WP_Post $post, $attributes, array $dbSettings, string $outputPath): array
     {
-        // Parse settings data with validation
-        $settingsData = [];
-        if (!empty($settings)) {
-            if (is_string($settings)) {
-                $decodedSettings = json_decode($settings, true);
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decodedSettings)) {
-                    $settingsData = $decodedSettings;
-                }
-            } elseif (is_array($settings)) {
-                $settingsData = $settings;
-            }
-        }
+        $category = !empty($dbSettings['category'])
+            ? sanitize_text_field($dbSettings['category'])
+            : 'theme';
 
-        // Detect inner blocks usage from database settings or render template
-        $innerBlocksEnabled = $dbSettings['supports_inner_blocks'] ?? false;
+        $icon = !empty($dbSettings['icon'])
+            ? sanitize_text_field($dbSettings['icon'])
+            : 'smiley';
+
+        $description = !empty($dbSettings['description'])
+            ? sanitize_text_field($dbSettings['description'])
+            : '';
+
+        $innerBlocksEnabled = !empty($dbSettings['supports_inner_blocks']);
 
         $renderContainsInnerBlocks = false;
         $renderFile = $outputPath . '/render.php';
@@ -98,43 +90,30 @@ class BlockJson implements FileGeneratorInterface
 
         $usesInnerBlocks = $innerBlocksEnabled || $renderContainsInnerBlocks;
 
-        // Build default block.json structure
         $blockJson = [
             '$schema' => 'https://schemas.wp.org/trunk/block.json',
             'apiVersion' => 3,
             'name' => 'fancoolo/' . $post->post_name,
             'version' => '1.0.0',
             'title' => $post->post_title,
+            'category' => $category,
+            'icon' => $icon,
+            'description' => $description,
         ];
 
-        // Add configurable properties from settings with defaults
-        $blockJson['category'] = isset($settingsData['category']) && !empty($settingsData['category'])
-            ? sanitize_text_field($settingsData['category'])
-            : 'theme';
-
-        $blockJson['icon'] = isset($settingsData['icon']) && !empty($settingsData['icon'])
-            ? sanitize_text_field($settingsData['icon'])
-            : 'smiley';
-
-        $blockJson['description'] = isset($settingsData['description']) && !empty($settingsData['description'])
-            ? sanitize_text_field($settingsData['description'])
-            : '';
-
-        // Add supports with defaults that can be overridden
         $defaultSupports = [
             'html' => $usesInnerBlocks,
             'align' => ['left', 'center', 'right', 'wide', 'full'],
             'anchor' => true
         ];
 
-        // Add interactivity support if view.js will be generated
         $jsContent = get_post_meta($post->ID, MetaKeysConstants::BLOCK_JS, true);
         if (!empty($jsContent)) {
             $defaultSupports['interactivity'] = true;
         }
 
-        if (isset($settingsData['supports']) && is_array($settingsData['supports'])) {
-            $blockJson['supports'] = wp_parse_args($settingsData['supports'], $defaultSupports);
+        if (isset($dbSettings['supports']) && is_array($dbSettings['supports'])) {
+            $blockJson['supports'] = wp_parse_args($dbSettings['supports'], $defaultSupports);
         } else {
             $blockJson['supports'] = $defaultSupports;
         }
@@ -158,14 +137,6 @@ class BlockJson implements FileGeneratorInterface
             $blockJson['attributes'] = $attributeSchema;
         }
 
-        // Deep merge additional settings (excluding already processed ones)
-        $excludedKeys = ['category', 'icon', 'description', 'supports', 'allowedBlocks', 'innerBlocks'];
-        foreach ($settingsData as $key => $value) {
-            if (!in_array($key, $excludedKeys, true) && !isset($blockJson[$key])) {
-                $blockJson[$key] = $value;
-            }
-        }
-
         return $blockJson;
     }
 
@@ -174,9 +145,9 @@ class BlockJson implements FileGeneratorInterface
      * @param array &$blockJson Block configuration array
      * @param string $outputPath Output directory path
      * @param int $postId Post ID for checking meta content
-     * @param array|null $dbSettings Database settings for the block
+     * @param array $dbSettings Database settings for the block
      */
-    private function addConditionalAssets(array &$blockJson, string $outputPath, int $postId, ?array $dbSettings): void
+    private function addConditionalAssets(array &$blockJson, string $outputPath, int $postId, array $dbSettings): void
     {
         // Define potential asset files (excluding view.js which is handled separately)
         $assetFiles = [
