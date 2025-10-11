@@ -29,6 +29,36 @@ class SymbolProcessor
     private const SYMBOL_PATTERN = '/<([A-Z][a-zA-Z0-9]*)\s*([^>]*?)\s*\/\s*>/';
 
     /**
+     * HTML/SVG tags that are valid as self-closing void elements.
+     */
+    private const SELF_CLOSING_ALLOWED_TAGS = [
+        'area',
+        'base',
+        'br',
+        'col',
+        'embed',
+        'hr',
+        'img',
+        'input',
+        'link',
+        'meta',
+        'param',
+        'source',
+        'track',
+        'wbr',
+        // Common SVG elements that are typically self-closing
+        'path',
+        'circle',
+        'ellipse',
+        'line',
+        'polyline',
+        'polygon',
+        'rect',
+        'stop',
+        'use',
+    ];
+
+    /**
      * Check if content contains symbol tags
      *
      * @param string $content Content to check
@@ -125,7 +155,8 @@ class SymbolProcessor
                 // Capture symbol output
                 ob_start();
                 include $symbolFile;
-                return ob_get_clean();
+                $output = ob_get_clean();
+                return self::normalizeSelfClosingTags($output);
             } else {
                 return '<!-- Symbol not found: ' . $fileName . '.php -->';
             }
@@ -172,6 +203,43 @@ class SymbolProcessor
         }
 
         return $attributes;
+    }
+
+    /**
+     * Convert shorthand self-closing tags (e.g. <button />) into proper closing tags
+     * for elements that are not valid void/self-closing HTML tags.
+     */
+    private static function normalizeSelfClosingTags(string $html): string
+    {
+        if ($html === '') {
+            return $html;
+        }
+
+        return (string) preg_replace_callback(
+            '/<([a-z][\w:-]*)([^>]*)\/>/i',
+            static function (array $matches): string {
+                $tagNameOriginal = $matches[1];
+                $tagName = strtolower($tagNameOriginal);
+
+                if (in_array($tagName, self::SELF_CLOSING_ALLOWED_TAGS, true)) {
+                    return $matches[0];
+                }
+
+                $attributes = $matches[2] ?? '';
+                $attributes = rtrim($attributes);
+
+                if ($attributes === '') {
+                    return sprintf('</%s>', $tagNameOriginal);
+                }
+
+                return sprintf(
+                    '<%1$s%2$s></%1$s>',
+                    $tagNameOriginal,
+                    $attributes
+                );
+            },
+            $html
+        );
     }
 
     /**

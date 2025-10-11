@@ -113,6 +113,34 @@
     "bdo",
   ];
 
+  const SAFE_TAG_SET = new Set(SAFE_TAGS.map((tag) => tag.toLowerCase()));
+  const SELF_CLOSING_ALLOWED_TAGS = new Set([
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+    // Common SVG tags that are typically self-closing
+    "path",
+    "circle",
+    "ellipse",
+    "line",
+    "polyline",
+    "polygon",
+    "rect",
+    "stop",
+    "use",
+  ]);
+
   // Safe attributes allowlist
   const SAFE_ATTRIBUTES = [
     "class",
@@ -254,6 +282,42 @@
     });
   }
 
+  const SELF_CLOSING_LOWERCASE_TAG_REGEX = /<([a-z0-9:-]+)\s*\/>/gi;
+
+  /**
+   * Convert shorthand closing tags like <button/> into proper closing tags
+   * while preserving valid self-closing HTML/SVG elements.
+   * @param {string} html - Raw HTML string from server
+   * @returns {string} Normalized HTML
+   */
+  function normalizeShorthandClosingTags(html) {
+    if (!html || typeof html !== "string") {
+      return html;
+    }
+
+    return html.replace(
+      SELF_CLOSING_LOWERCASE_TAG_REGEX,
+      (match, tagNameWithCase) => {
+        const tagName = String(tagNameWithCase);
+        const lowerTag = tagName.toLowerCase();
+
+        if (tagName !== lowerTag) {
+          return match;
+        }
+
+        if (!SAFE_TAG_SET.has(lowerTag)) {
+          return match;
+        }
+
+        if (SELF_CLOSING_ALLOWED_TAGS.has(lowerTag)) {
+          return match;
+        }
+
+        return `</${lowerTag}>`;
+      }
+    );
+  }
+
   // Pre-compiled regex for performance
   const STYLE_KEBAB_REGEX = /-([a-z])/g;
 
@@ -393,8 +457,10 @@
         'data-fancoolo-block-props="true"'
       );
 
+      const normalizedHtml = normalizeShorthandClosingTags(processedHtml);
+
       const container = document.createElement("div");
-      container.innerHTML = processedHtml.trim();
+      container.innerHTML = normalizedHtml.trim();
 
       const convertDomToReact = (domNode, path = "") => {
         if (domNode.nodeType === Node.ELEMENT_NODE) {
