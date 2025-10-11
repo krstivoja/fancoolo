@@ -16,6 +16,7 @@ use FanCoolo\Helpers\PluginHelper;
 use FanCoolo\Database\DatabaseInstaller;
 use FanCoolo\EDDUpdater\EDDLicenseHandler;
 use FanCoolo\Services\ErrorLogger;
+use FanCoolo\Services\BlockViewScriptFooterService;
 
 /**
  * Simple license checking without EDD dependency
@@ -145,6 +146,7 @@ class App
             new BlockRegistrationService();
             new InnerBlocksService();
             new GutenbergSync();
+            new BlockViewScriptFooterService();
         } catch (\Throwable $e) {
             throw $e;
         }
