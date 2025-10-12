@@ -1,128 +1,196 @@
 # FanCoolo Fields Reference
 
+## What Are Fields?
+
+**Fields** (also called **Attributes**) are the editable options that appear in the Gutenberg Editor sidebar when someone uses your block.
+
+For example, if you create a "Testimonial" block, you might want these fields:
+- Author name (text field)
+- Quote text (textarea)
+- Show photo (on/off toggle)
+- Star rating (slider from 1-5)
+
+When users insert your block into a page, they'll see these fields in the sidebar and can edit them. The values they enter are automatically saved and available in your block's PHP render code.
+
+---
+
 ## Block Attributes Manager
 
-The **Attributes Manager** is the most important tool in FanCoolo. It lets you define what data your block can store and edit - all through a simple UI, no JSON editing required.
+The **Attributes Manager** is where you create these fields using a simple visual interface - no JSON editing required.
 
 ### How It Works
 
 1. Open the **Attributes** tab in the FanCoolo editor
 2. Click **"+ Add attribute"** to create a new field
-3. Choose the type and name using dropdown and text input
-4. FanCoolo automatically generates `block.json` with your attributes
-5. Your block appears in Gutenberg with editable fields in the sidebar
-6. Users edit the fields and WordPress saves the data
-7. Your PHP render code accesses the data via `$attributes`
+3. Choose the **Type** (Text, Number, Toggle, etc.) from dropdown
+4. Enter the **Attribute name** (e.g., "authorName", "quoteText", "showPhoto")
+5. FanCoolo automatically generates `block.json` with your attributes
+6. Your block appears in Gutenberg with these fields in the sidebar
+7. Users edit the fields → WordPress saves the data
+8. Your PHP code accesses the data via `$attributes`
+9. **Copy the PHP example** shown below each attribute to use it in your code
 
-### Using the Attributes Manager
-
-#### Adding an Attribute
+### Adding an Attribute
 
 1. Click **"+ Add attribute"** button
-2. Select the **Type** from dropdown (Text, Number, Toggle, etc.)
-3. Enter the **Attribute name** (e.g., "title", "showButton", "imageUrl")
-4. Add options if using Select/Radio type
-5. Set range if using Range type
-
-#### Available Attribute Types
-
-| Type | UI Control | Best For | Example Use |
-|------|-----------|----------|-------------|
-| **Text** | Text input | Short text | Title, name, label |
-| **Textarea** | Multi-line text | Long text | Description, content |
-| **Number** | Number input | Numbers | Count, size, width |
-| **Range** | Slider | Numbers with limits | Opacity, font size |
-| **Date** | Date picker | Dates | Event date, publish date |
-| **Image** | Media selector | Images | Featured image, icon |
-| **Link** | URL input | URLs | Button link, external URL |
-| **Color** | Color picker | Colors | Background, text color |
-| **Select** | Dropdown menu | Single choice | Layout style, alignment |
-| **Toggle** | On/off switch | True/false | Show/hide feature |
-| **Checkbox** | Checkbox | True/false | Enable option |
-| **Radio** | Radio buttons | Single choice | Size option |
-
-#### Adding Options (Select/Radio)
-
-For Select and Radio types:
-1. Click **"+ Add Option"**
-2. Enter **Label** (what user sees)
-3. Enter **Value** (what code uses)
-4. Add more options as needed
-
-Example:
-- Label: "Small" → Value: "sm"
-- Label: "Medium" → Value: "md"
-- Label: "Large" → Value: "lg"
-
-#### Setting Range (Range type)
-
-For Range type:
-1. Set **Max value** (e.g., 100)
-2. User can slide from 0 to your max value
-
-### What Gets Generated
-
-When you add attributes using the UI, FanCoolo creates this in `block.json`:
-
-```json
-{
-    "name": "fancoolo/my-block",
-    "title": "My Block",
-    "attributes": {
-        "title": {
-            "type": "string",
-            "default": ""
-        },
-        "showButton": {
-            "type": "boolean",
-            "default": false
-        },
-        "buttonSize": {
-            "type": "string",
-            "default": "md"
-        }
-    }
-}
-```
-
-### Using Attributes in Your PHP Code
-
-Access attributes in your render template:
-
-```php
-<div class="my-block">
-    <h2><?php echo esc_html($attributes['title']); ?></h2>
-
-    <?php if ($attributes['showButton']): ?>
-        <button class="btn-<?php echo esc_attr($attributes['buttonSize']); ?>">
-            Click me
-        </button>
-    <?php endif; ?>
-</div>
-```
-
-### Editing in Gutenberg
-
-Once you add attributes in FanCoolo, they automatically appear as editable fields in the Gutenberg sidebar when users insert your block:
-
-- **Text/Textarea** → Text input fields
-- **Number** → Number spinner
-- **Range** → Slider control
-- **Toggle/Checkbox** → On/off switch
-- **Select** → Dropdown menu
-- **Radio** → Radio button group
-- **Color** → Color picker
-- **Image** → Media upload button
-- **Link** → URL input field
-- **Date** → Date picker
+2. Select **Type** from dropdown
+3. Enter **Attribute name** (use camelCase like "authorName")
+4. For Select/Radio: Click **"+ Add Option"** to add choices
+5. For Range: Set **Max value**
+6. **Copy the PHP code example** shown below the attribute
+7. **Paste it into your PHP render code** to use the field
 
 ---
 
-## All Block Fields
+## Available Field Types
+
+| Type | Gutenberg UI | Best For | Example |
+|------|--------------|----------|---------|
+| **Text** | Text input | Short text | Author name, title, label |
+| **Textarea** | Multi-line box | Long text | Quote, description, content |
+| **Number** | Number spinner | Numbers | Count, width, quantity |
+| **Range** | Slider | Numbers with limits | Rating (1-5), opacity (0-100) |
+| **Date** | Date picker | Dates | Event date, deadline |
+| **Image** | Media button | Images | Author photo, background |
+| **Link** | URL input | URLs | Button link, website URL |
+| **Color** | Color picker | Colors | Background, text color |
+| **Select** | Dropdown | Single choice from list | Size (S/M/L), alignment |
+| **Toggle** | On/off switch | Enable/disable | Show author, enable feature |
+| **Checkbox** | Checkbox | True/false | Accept terms, featured |
+| **Radio** | Radio buttons | Single choice (visual) | Layout style, theme |
+
+---
+
+## Using Fields in Your Code
+
+### Step 1: Create Field in Attributes Manager
+
+In FanCoolo, add a "Text" attribute named "authorName"
+
+### Step 2: Copy the PHP Example
+
+Below each attribute, you'll see a PHP code example like:
+
+```php
+<?php echo esc_html($attributes['authorName']); ?>
+```
+
+### Step 3: Paste in Your Render Code
+
+Use it in your block's PHP template:
+
+```php
+<div class="testimonial">
+    <p class="author">By <?php echo esc_html($attributes['authorName']); ?></p>
+</div>
+```
+
+### Examples by Type
+
+**Text/Textarea:**
+```php
+<h2><?php echo esc_html($attributes['title']); ?></h2>
+```
+
+**Toggle/Checkbox:**
+```php
+<?php if ($attributes['showPhoto']): ?>
+    <img src="..." alt="">
+<?php endif; ?>
+```
+
+**Number/Range:**
+```php
+<div class="rating-<?php echo intval($attributes['rating']); ?>">
+    ★ <?php echo intval($attributes['rating']); ?>
+</div>
+```
+
+**Select/Radio:**
+```php
+<div class="size-<?php echo esc_attr($attributes['size']); ?>">
+    Content here
+</div>
+```
+
+**Image:**
+```php
+<?php if ($attributes['imageUrl']): ?>
+    <img src="<?php echo esc_url($attributes['imageUrl']); ?>" alt="">
+<?php endif; ?>
+```
+
+**Color:**
+```php
+<div style="background-color: <?php echo esc_attr($attributes['backgroundColor']); ?>">
+    Content
+</div>
+```
+
+---
+
+## Adding Options (Select/Radio)
+
+For **Select** and **Radio** types, you need to define the choices:
+
+### In Attributes Manager:
+
+1. Choose "Select" or "Radio" type
+2. Click **"+ Add Option"**
+3. Enter **Label** (what user sees in Gutenberg)
+4. Enter **Value** (what your code receives)
+
+### Example:
+
+| Label | Value | Result |
+|-------|-------|--------|
+| Small | `sm` | User sees "Small", code gets "sm" |
+| Medium | `md` | User sees "Medium", code gets "md" |
+| Large | `lg` | User sees "Large", code gets "lg" |
+
+### In Your PHP Code:
+
+```php
+<div class="button-<?php echo esc_attr($attributes['buttonSize']); ?>">
+    <!-- If user selected "Small", this outputs: <div class="button-sm"> -->
+</div>
+```
+
+---
+
+## Setting Range (Range type)
+
+For **Range** type, set the maximum value:
+
+### In Attributes Manager:
+
+1. Choose "Range" type
+2. Set **Max value** (e.g., 100)
+3. User gets slider from 0 to your max
+
+### Example - Star Rating (1-5):
+
+- Type: Range
+- Max: 5
+- User drags slider from 0 to 5
+
+### In Your PHP Code:
+
+```php
+<div class="stars">
+    <?php for ($i = 0; $i < $attributes['rating']; $i++): ?>
+        ★
+    <?php endfor; ?>
+</div>
+```
+
+---
+
+## All Block Fields Reference
 
 ### `_funculo_block_php`
 
-PHP code that renders your block on the frontend.
+PHP code that renders your block on the frontend. This is where you use `$attributes`.
 
 ```php
 <div class="my-block">
@@ -137,13 +205,12 @@ Frontend styles for your block.
 ```scss
 .my-block {
     padding: 2rem;
-    h2 { color: #333; }
 }
 ```
 
 ### `_funculo_block_editor_scss`
 
-Styles for the block in the WordPress editor.
+Styles for the block in the WordPress editor only.
 
 ```scss
 .wp-block-fancoolo-my-block {
@@ -165,28 +232,28 @@ document.querySelectorAll('.my-block').forEach(block => {
 
 ### `_funculo_block_attributes`
 
-Defines the data structure using the **Attributes Manager UI** (see section above).
+Created using the **Attributes Manager UI** - defines editable fields.
 
 ### `_funculo_block_settings`
 
-General block configuration - set in the Settings tab:
+Set in the **Settings** tab:
 
 - **Description** - What the block does
-- **Category** - Where it appears in inserter (text, media, design, etc.)
-- **Icon** - Dashicon name for block icon
-- **View Script Module** - Load JS as ES6 module (toggle on/off)
+- **Category** - Where it appears in inserter (text, media, design)
+- **Icon** - Dashicon name
+- **View Script Module** - Load JS as ES6 module (toggle)
 
 ### `_funculo_block_selected_partials`
 
-SCSS partials to include - select from the Partials tab.
+Select SCSS partials to include from the **Partials** tab.
 
 ### `_funculo_block_inner_blocks_settings`
 
-Configuration for nested blocks - set in the Inner Blocks tab:
+Set in the **Inner Blocks** tab:
 
-- **Supports Inner Blocks** - Enable/disable (toggle)
+- **Supports Inner Blocks** - Enable/disable nested blocks
 - **Allowed Blocks** - Which blocks can be inserted inside
-- **Template** - Default blocks to show when first inserted
+- **Template** - Default blocks to show
 
 ---
 
@@ -214,7 +281,6 @@ Reusable SCSS code shared across blocks.
 @mixin button-primary {
     background: #007cba;
     color: white;
-    padding: 0.5rem 1rem;
 }
 ```
 
@@ -224,34 +290,31 @@ Toggle to auto-include in all blocks.
 
 ### `_funculo_scss_global_order`
 
-Load order for global partials (lower numbers load first).
+Load order (lower = loads first).
 
 ---
 
 ## Quick Reference
 
-| Field | Type | How to Edit |
-|-------|------|-------------|
-| `_funculo_block_php` | Text | PHP tab - code editor |
-| `_funculo_block_scss` | Text | SCSS tab - code editor |
-| `_funculo_block_editor_scss` | Text | Editor SCSS tab - code editor |
-| `_funculo_block_js` | Text | JS tab - code editor |
-| `_funculo_block_attributes` | JSON | **Attributes tab - visual UI** |
-| `_funculo_block_settings` | JSON | Settings tab - form fields |
-| `_funculo_block_selected_partials` | Array | Partials tab - checkboxes |
-| `_funculo_block_inner_blocks_settings` | JSON | Inner Blocks tab - form |
-| `_funculo_symbol_php` | Text | Code editor |
-| `_funculo_scss_partial_scss` | Text | Code editor |
-| `_funculo_scss_is_global` | Boolean | Toggle switch |
-| `_funculo_scss_global_order` | Integer | Number input |
+| Field | Where to Edit | What It Does |
+|-------|---------------|--------------|
+| `_funculo_block_php` | PHP tab | Render template with `$attributes` |
+| `_funculo_block_scss` | SCSS tab | Frontend styles |
+| `_funculo_block_editor_scss` | Editor SCSS tab | Editor-only styles |
+| `_funculo_block_js` | JS tab | Frontend JavaScript |
+| `_funculo_block_attributes` | **Attributes tab (UI)** | **Editable fields in Gutenberg** |
+| `_funculo_block_settings` | Settings tab | Category, icon, description |
+| `_funculo_block_selected_partials` | Partials tab | Include SCSS partials |
+| `_funculo_block_inner_blocks_settings` | Inner Blocks tab | Nested blocks config |
 
 ---
 
 ## Tips
 
-- **Attribute names** should be camelCase (e.g., `showButton`, `imageUrl`)
-- Use the **code example** shown below each attribute to see how to use it in PHP
-- Attributes are automatically available in Gutenberg - no extra code needed
-- Use **Select/Radio** for predefined choices
-- Use **Toggle/Checkbox** for true/false options
-- Use **Range** for numeric values with min/max limits
+✅ **Copy the PHP examples** shown below each attribute in the Attributes Manager
+✅ Attribute names should be **camelCase** (e.g., `authorName`, `showPhoto`)
+✅ Use **Select/Radio** for predefined choices
+✅ Use **Toggle/Checkbox** for on/off options
+✅ Use **Range** for numbers with min/max (like ratings)
+✅ Fields automatically appear in Gutenberg - no extra code needed
+✅ Always escape output: `esc_html()`, `esc_attr()`, `esc_url()`
