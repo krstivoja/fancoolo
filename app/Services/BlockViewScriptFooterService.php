@@ -14,6 +14,7 @@ class BlockViewScriptFooterService
         add_action('wp_enqueue_scripts', [$this, 'moveHandlesToFooter'], 999);
         add_action('wp_print_footer_scripts', [$this, 'captureHandles'], 9);
         add_action('wp_footer', [$this, 'printHandles'], 9999);
+        add_filter('script_loader_tag', [$this, 'removeDefer'], 10, 3);
     }
 
     public function moveHandlesToFooter(): void
@@ -79,5 +80,22 @@ class BlockViewScriptFooterService
         }
 
         $this->delayedHandles = [];
+    }
+
+    public function removeDefer(string $tag, string $handle, string $src): string
+    {
+        // Only process our fancoolo view scripts
+        if (strpos($handle, 'fancoolo-') === false || strpos($handle, '-view-script') === false) {
+            return $tag;
+        }
+
+        // Remove defer attribute
+        $tag = str_replace(' defer', '', $tag);
+        $tag = str_replace(' defer=""', '', $tag);
+
+        // Remove data-wp-strategy attribute
+        $tag = preg_replace('/ data-wp-strategy="[^"]*"/', '', $tag);
+
+        return $tag;
     }
 }
