@@ -3,7 +3,7 @@
  * Plugin Name: FanCoolo WP
  * Plugin URI: https://github.com/marko-krstic/fancoolo
  * Description: Build gutenberg blocks without scraming in the screen.
- * Version: 0.0.3
+ * Version: 1.0.0 - Beta
  * Author: Marko Krstić
  * Author URI: https://dplugins.com/
  * License: GPL-2.0-or-later
