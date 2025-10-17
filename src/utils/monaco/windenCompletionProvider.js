@@ -27,7 +27,6 @@ export function isWindenAvailable() {
  */
 export function getWindenClasses() {
 	if (!isWindenAvailable()) {
-		console.warn('[FanCoolo] Winden autocomplete data not available');
 		return [];
 	}
 	return window.winden_autocomplete;
@@ -220,9 +219,6 @@ export function createWindenCompletionProvider(monaco, languages = ['php', 'html
 	const { maxSuggestions = 100, customClasses = [] } = options;
 
 	if (!isWindenAvailable()) {
-		console.warn(
-			'[FanCoolo] Winden autocomplete not available. Make sure Winden plugin is active and cache is generated.'
-		);
 		return null;
 	}
 
@@ -238,8 +234,6 @@ export function createWindenCompletionProvider(monaco, languages = ['php', 'html
 
 	// Generate a unique ID for this provider instance
 	const instanceId = Math.random().toString(36).substr(2, 9);
-	console.log(`[FanCoolo] Initializing Winden autocomplete instance ${instanceId} with ${classCount} Tailwind classes`);
-	console.log(`[FanCoolo] Instance ${instanceId} will register for languages:`, languages);
 
 	// Register completion provider for each language (reusing global providers when available)
 	const managedLanguages = [];
@@ -249,12 +243,9 @@ export function createWindenCompletionProvider(monaco, languages = ['php', 'html
 
 		if (existingProvider) {
 			existingProvider.refCount += 1;
-			console.log(`[FanCoolo] Reusing existing Winden autocomplete provider for language: ${language} (ref count: ${existingProvider.refCount})`);
 			managedLanguages.push({ language });
 			return;
 		}
-
-		console.log(`[FanCoolo] Instance ${instanceId} registering completion provider for language: ${language}`);
 
 		const disposable = monaco.languages.registerCompletionItemProvider(language, {
 			triggerCharacters: ['"', "'", ' ', ':', '-'],
@@ -268,16 +259,8 @@ export function createWindenCompletionProvider(monaco, languages = ['php', 'html
 				// IMPORTANT: Only provide suggestions if this provider's language matches the model
 				// This prevents duplicates when multiple providers are registered
 				if (modelLanguage !== language) {
-					console.log(`[FanCoolo Autocomplete] Skipping - Model is ${modelLanguage}, provider is for ${language}`);
 					return { suggestions: [] };
 				}
-
-				// Monaco provides context about the trigger
-				console.log('[FanCoolo Autocomplete] =====================================');
-				console.log(`[FanCoolo Autocomplete] Instance ${instanceId} ✓ Matched! Provider: ${language} / Model: ${modelLanguage}`);
-				console.log('[FanCoolo Autocomplete] Monaco Context:', monacoContext);
-				console.log('[FanCoolo Autocomplete] Trigger character:', monacoContext.triggerCharacter);
-				console.log('[FanCoolo Autocomplete] Trigger kind:', monacoContext.triggerKind);
 
 				// Get the text - but Monaco completion runs BEFORE the character is added
 				// So we need to work with what's there and use getWordAtPosition/getWordUntilPosition
@@ -289,57 +272,18 @@ export function createWindenCompletionProvider(monaco, languages = ['php', 'html
 					endColumn: position.column
 				});
 
-				// Try to get the word being typed using Monaco's word detection
-				const wordAtPosition = model.getWordAtPosition(position);
-				const wordUntilPosition = model.getWordUntilPosition(position);
-
-				console.log('[FanCoolo Autocomplete] Current line number:', position.lineNumber);
-				console.log('[FanCoolo Autocomplete] Position column:', position.column);
-				console.log('[FanCoolo Autocomplete] Line text:', lineText);
-				console.log('[FanCoolo Autocomplete] Text before cursor:', textBeforeCursor);
-				console.log('[FanCoolo Autocomplete] Word at position:', wordAtPosition);
-				console.log('[FanCoolo Autocomplete] Word until position:', wordUntilPosition);
-
 				const classAttrContext = detectClassAttributeContext(lineText, position.column);
-				console.log('[FanCoolo Autocomplete] Class attribute context:', classAttrContext);
-				console.log('[FanCoolo Autocomplete] =====================================');
 
 				// Only provide suggestions if we're inside a class attribute
 				if (!classAttrContext || !classAttrContext.isInClassAttribute) {
-					console.log('[FanCoolo Autocomplete] Not in class attribute, skipping');
 					return { suggestions: [] };
 				}
 
 				const wordInfo = getCurrentWord(model, position, classAttrContext);
 				const searchTerm = wordInfo.word;
 
-				// DETAILED DEBUG LOGGING - Only log if search term has content to reduce noise
-				if (searchTerm.length >= 2) {
-					console.log('='.repeat(80));
-					console.log(`[FanCoolo Autocomplete] 🔍 TYPING: "${searchTerm}"`);
-					console.log('='.repeat(80));
-					console.log('[FanCoolo Autocomplete] Full line text:', lineText);
-					console.log('[FanCoolo Autocomplete] Cursor position:', position.column);
-					console.log('[FanCoolo Autocomplete] Text before cursor:', lineText.substring(0, position.column - 1));
-					console.log('[FanCoolo Autocomplete] Word info:', wordInfo);
-					console.log('[FanCoolo Autocomplete] Search term:', `"${searchTerm}"`, `(length: ${searchTerm.length})`);
-					console.log('[FanCoolo Autocomplete] Character codes:', searchTerm.split('').map((c, i) => `${c}(${c.charCodeAt(0)})`).join(', '));
-				}
-
 				// Filter classes based on search term
 				const filteredClasses = filterClasses(classes, searchTerm, maxSuggestions);
-
-				if (searchTerm.length >= 2) {
-					console.log('[FanCoolo Autocomplete] Total available classes:', classes.length);
-					console.log('[FanCoolo Autocomplete] Found', filteredClasses.length, 'matching classes');
-					console.log('[FanCoolo Autocomplete] First 20 suggestions:', filteredClasses.slice(0, 20));
-
-					// Test the filter manually to see what's happening
-					const testFiltered = classes.filter(c => c.toLowerCase().startsWith(searchTerm.toLowerCase()));
-					console.log('[FanCoolo Autocomplete] 🧪 Manual test filter (starts with):', testFiltered.length, 'classes');
-					console.log('[FanCoolo Autocomplete] 🧪 Manual test first 20:', testFiltered.slice(0, 20));
-					console.log('='.repeat(80));
-				}
 
 				// Create Monaco completion items
 				// Use a Set to track seen labels and prevent duplicates
@@ -377,8 +321,6 @@ export function createWindenCompletionProvider(monaco, languages = ['php', 'html
 							sortText: className.startsWith(searchTerm) ? `0_${className}` : `1_${className}`,
 						};
 					});
-
-				console.log('[FanCoolo Autocomplete] Final suggestions count:', suggestions.length);
 
 				return {
 					suggestions,
@@ -444,13 +386,10 @@ export function initializeWindenAutocomplete(editor, monaco, options = {}) {
 
 	// If Winden is already available, initialize immediately
 	if (isWindenAvailable()) {
-		console.log('[FanCoolo] Winden autocomplete available, initializing immediately');
 		return createWindenCompletionProvider(monaco, languages, providerOptions);
 	}
 
 	// Otherwise, retry with polling
-	console.log('[FanCoolo] Winden autocomplete not available yet, will retry up to', retryAttempts, 'times...');
-
 	let attempts = 0;
 	let disposable = null;
 	let retryInterval = null;
@@ -459,17 +398,12 @@ export function initializeWindenAutocomplete(editor, monaco, options = {}) {
 		attempts++;
 
 		if (isWindenAvailable()) {
-			console.log(`[FanCoolo] Winden autocomplete available after ${attempts} attempt(s), initializing...`);
 			if (retryInterval) {
 				clearInterval(retryInterval);
 				retryInterval = null;
 			}
 			disposable = createWindenCompletionProvider(monaco, languages, providerOptions);
 		} else if (attempts >= retryAttempts) {
-			console.warn(
-				`[FanCoolo] Winden autocomplete not available after ${attempts} attempts. ` +
-					'Make sure Winden plugin is installed, active, and cache is generated.'
-			);
 			if (retryInterval) {
 				clearInterval(retryInterval);
 				retryInterval = null;

@@ -88,7 +88,6 @@ const MonacoEditor = ({
 
         if (disposable) {
           windenDisposableRef.current = disposable;
-          console.log('[FanCoolo] Winden autocomplete initialization started');
         }
       } catch (error) {
         console.warn('[FanCoolo] Failed to initialize Winden autocomplete:', error);
