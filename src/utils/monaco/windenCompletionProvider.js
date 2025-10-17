@@ -66,7 +66,11 @@ function getMonacoWindenState(monaco) {
 }
 
 /**
- * Parse the current line to detect if we're inside a class attribute
+ * Parse the current line to detect if we're inside a class attribute or class-related variable
+ *
+ * Detects:
+ * - HTML: class="..." or class='...'
+ * - PHP: $class = '...', $classes = '...', $className = '...', etc.
  *
  * @param {string} lineText - Full text of the current line
  * @param {number} column - Current cursor column position
@@ -76,29 +80,45 @@ function detectClassAttributeContext(lineText, column) {
 	// Get text up to cursor position
 	const textBeforeCursor = lineText.substring(0, column - 1);
 
-	// Pattern to match class attribute: class="..." or class='...'
-	const classAttrPattern = /class\s*=\s*["']([^"']*)$/i;
-	const match = textBeforeCursor.match(classAttrPattern);
+	// Pattern 1: HTML class attribute: class="..." or class='...'
+	const htmlClassPattern = /class\s*=\s*["']([^"']*)$/i;
+	const htmlMatch = textBeforeCursor.match(htmlClassPattern);
 
-	if (!match) {
-		return null;
+	if (htmlMatch) {
+		const classesText = htmlMatch[1];
+		const classes = classesText.split(/\s+/).filter(Boolean);
+		const lastChar = textBeforeCursor[textBeforeCursor.length - 1];
+		const isAfterSpace = lastChar === ' ' || lastChar === '"' || lastChar === "'";
+
+		return {
+			isInClassAttribute: true,
+			existingClasses: classes,
+			isAfterSpace,
+			classesText,
+			attributeStartColumn: column - classesText.length,
+		};
 	}
 
-	// Extract existing classes and determine position
-	const classesText = match[1];
-	const classes = classesText.split(/\s+/).filter(Boolean);
+	// Pattern 2: PHP variables containing "class": $class = '...', $classes = '...', $className = '...', etc.
+	const phpClassVarPattern = /\$\w*class\w*\s*=\s*["']([^"']*)$/i;
+	const phpMatch = textBeforeCursor.match(phpClassVarPattern);
 
-	// Check if we're after a space or at the start of class attribute
-	const lastChar = textBeforeCursor[textBeforeCursor.length - 1];
-	const isAfterSpace = lastChar === ' ' || lastChar === '"' || lastChar === "'";
+	if (phpMatch) {
+		const classesText = phpMatch[1];
+		const classes = classesText.split(/\s+/).filter(Boolean);
+		const lastChar = textBeforeCursor[textBeforeCursor.length - 1];
+		const isAfterSpace = lastChar === ' ' || lastChar === '"' || lastChar === "'";
 
-	return {
-		isInClassAttribute: true,
-		existingClasses: classes,
-		isAfterSpace,
-		classesText,
-		attributeStartColumn: column - classesText.length,
-	};
+		return {
+			isInClassAttribute: true,
+			existingClasses: classes,
+			isAfterSpace,
+			classesText,
+			attributeStartColumn: column - classesText.length,
+		};
+	}
+
+	return null;
 }
 
 /**
