@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { emmetHTML, emmetCSS } from 'emmet-monaco-es';
+import { initializeWindenAutocomplete } from '../../../utils/monaco/windenCompletionProvider';
 
 // Global Emmet initialization flags
 let globalEmmetHtmlInitialized = false;
@@ -14,12 +15,14 @@ const MonacoEditor = ({
   placeholder,
   enableEmmet = false,
   enablePhpHtmlSwitching = false,
+  enableWindenAutocomplete = true,
   ...props
 }) => {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const [currentLanguage, setCurrentLanguage] = useState(language);
   const isInternalChangeRef = useRef(false);
+  const windenDisposableRef = useRef(null);
 
   // Sync external value changes to editor without remounting
   useEffect(() => {
@@ -36,6 +39,15 @@ const MonacoEditor = ({
     }
     isInternalChangeRef.current = false;
   }, [value]);
+
+  // Cleanup Winden disposable on unmount
+  useEffect(() => {
+    return () => {
+      if (windenDisposableRef.current && typeof windenDisposableRef.current.dispose === 'function') {
+        windenDisposableRef.current.dispose();
+      }
+    };
+  }, []);
 
   // Initialize Emmet when Monaco is ready
   const handleEditorDidMount = (editor, monaco) => {
@@ -59,6 +71,28 @@ const MonacoEditor = ({
     // Set up PHP/HTML context switching if enabled
     if (enablePhpHtmlSwitching && language === 'php') {
       setupPhpHtmlSwitching(editor, monaco);
+    }
+
+    // Initialize Winden Tailwind autocomplete if enabled
+    // The provider now handles global reuse internally, so we can safely initialize per editor mount.
+    if (enableWindenAutocomplete) {
+      try {
+        // Initialize for both PHP and HTML languages
+        const disposable = initializeWindenAutocomplete(editor, monaco, {
+          languages: ['php', 'html'],
+          maxSuggestions: 100,
+          customClasses: [], // Can add custom FanCoolo classes here
+          retryAttempts: 10,  // Increase retry attempts
+          retryDelay: 300     // Check every 300ms
+        });
+
+        if (disposable) {
+          windenDisposableRef.current = disposable;
+          console.log('[FanCoolo] Winden autocomplete initialization started');
+        }
+      } catch (error) {
+        console.warn('[FanCoolo] Failed to initialize Winden autocomplete:', error);
+      }
     }
 
     // Call original onMount if provided

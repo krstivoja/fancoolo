@@ -17,6 +17,7 @@ use FanCoolo\Database\DatabaseInstaller;
 use FanCoolo\EDDUpdater\EDDLicenseHandler;
 use FanCoolo\Services\ErrorLogger;
 use FanCoolo\Services\BlockViewScriptFooterService;
+use FanCoolo\Services\WindenIntegrationService;
 
 /**
  * Simple license checking without EDD dependency
@@ -126,6 +127,7 @@ class App
     {
         new SettingsPage();
         new MetaBoxHelper();
+        new WindenIntegrationService();
     }
 
     /**
