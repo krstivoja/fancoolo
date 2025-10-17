@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { emmetHTML, emmetCSS } from 'emmet-monaco-es';
-import { initializeWindenAutocomplete } from '../../../utils/monaco/windenCompletionProvider';
+import { initializeWindenAutocomplete } from '../../../utils/monaco/classNamesCompletionProvider';
 
 // Global Emmet initialization flags
 let globalEmmetHtmlInitialized = false;

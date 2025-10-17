@@ -1,18 +1,23 @@
 /**
- * Winden Tailwind Autocomplete Provider for Monaco Editor
+ * Class Names Autocomplete Provider for Monaco Editor
  *
- * Provides HTML class attribute autocomplete for Monaco editors in FanCoolo.
- * Integrates with Winden plugin's Tailwind class cache.
+ * Framework-agnostic autocomplete provider for CSS class names in Monaco editors.
+ * Supports multiple sources:
+ * - Winden (Tailwind CSS)
+ * - Core Framework
+ * - Custom class lists
  *
- * @version 1.0.0
+ * All sources merge into window.winden_autocomplete for compatibility.
+ *
+ * @version 2.0.0
  */
 
 /**
- * Check if Winden autocomplete data is available
+ * Check if any class name data is available
  *
- * @returns {boolean} True if Winden data is loaded
+ * @returns {boolean} True if class data is loaded from any source
  */
-export function isWindenAvailable() {
+export function isClassDataAvailable() {
 	return !!(
 		window.winden_autocomplete &&
 		Array.isArray(window.winden_autocomplete) &&
@@ -21,23 +26,40 @@ export function isWindenAvailable() {
 }
 
 /**
- * Get all available Tailwind classes from Winden
- *
- * @returns {string[]} Array of Tailwind class names
+ * Legacy alias for backwards compatibility
+ * @deprecated Use isClassDataAvailable() instead
  */
-export function getWindenClasses() {
-	if (!isWindenAvailable()) {
+export const isWindenAvailable = isClassDataAvailable;
+
+/**
+ * Get all available CSS class names from all sources
+ *
+ * Sources include:
+ * - Winden (Tailwind CSS classes)
+ * - Core Framework (utility classes)
+ * - Any other plugins that merge into window.winden_autocomplete
+ *
+ * @returns {string[]} Array of CSS class names
+ */
+export function getAvailableClasses() {
+	if (!isClassDataAvailable()) {
 		return [];
 	}
 	return window.winden_autocomplete;
 }
 
 /**
- * Get breakpoint prefixes from Winden
+ * Legacy alias for backwards compatibility
+ * @deprecated Use getAvailableClasses() instead
+ */
+export const getWindenClasses = getAvailableClasses;
+
+/**
+ * Get breakpoint prefixes (responsive modifiers)
  *
  * @returns {string[]} Array of breakpoint names (e.g., ['sm', 'md', 'lg'])
  */
-export function getWindenScreens() {
+export function getBreakpointPrefixes() {
 	if (!window.winden_autocomplete_screens) {
 		return [];
 	}
@@ -45,25 +67,34 @@ export function getWindenScreens() {
 }
 
 /**
- * Accessor for Monaco-scoped Winden state to coordinate provider reuse
+ * Legacy alias for backwards compatibility
+ * @deprecated Use getBreakpointPrefixes() instead
+ */
+export const getWindenScreens = getBreakpointPrefixes;
+
+/**
+ * Accessor for Monaco-scoped autocomplete state
+ *
+ * Coordinates provider reuse across multiple editor instances.
  *
  * @param {object} monaco - Monaco editor API instance
  * @returns {object} Shared state containing class cache and provider registry
  */
-function getMonacoWindenState(monaco) {
+function getMonacoAutocompleteState(monaco) {
 	if (!monaco.__fanCoolo) {
 		monaco.__fanCoolo = {};
 	}
 
-	if (!monaco.__fanCoolo.windenState) {
-		monaco.__fanCoolo.windenState = {
+	if (!monaco.__fanCoolo.autocompleteState) {
+		monaco.__fanCoolo.autocompleteState = {
 			classes: new Set(),
 			providers: new Map(),
 		};
 	}
 
-	return monaco.__fanCoolo.windenState;
+	return monaco.__fanCoolo.autocompleteState;
 }
+
 
 /**
  * Parse the current line to detect if we're inside a class attribute or class-related variable
@@ -223,10 +254,15 @@ function filterClasses(classes, searchTerm, limit = 100) {
 }
 
 /**
- * Create Monaco completion provider for Tailwind classes in HTML class attributes
+ * Create Monaco completion provider for CSS class names
  *
- * This provider detects when the cursor is inside class="..." or class='...'
- * and provides autocomplete suggestions for Tailwind classes.
+ * Framework-agnostic provider that works with any source of CSS classes.
+ * Detects when cursor is inside class="..." or class='...' (HTML) or
+ * PHP variables containing "class" ($class, $className, etc.).
+ *
+ * Sources supported:
+ * - window.winden_autocomplete (Winden, Core Framework, etc.)
+ * - customClasses option (programmatically added classes)
  *
  * @param {object} monaco - Monaco editor instance
  * @param {string[]} languages - Array of language IDs to register for (default: ['php', 'html'])
@@ -235,31 +271,57 @@ function filterClasses(classes, searchTerm, limit = 100) {
  * @param {string[]} options.customClasses - Additional custom classes to suggest
  * @returns {IDisposable} Disposable completion provider
  */
-export function createWindenCompletionProvider(monaco, languages = ['php', 'html'], options = {}) {
+export function createClassNamesCompletionProvider(monaco, languages = ['php', 'html'], options = {}) {
 	const { maxSuggestions = 100, customClasses = [] } = options;
 
-	if (!isWindenAvailable()) {
+	const hasCustomClasses = Array.isArray(customClasses) && customClasses.length > 0;
+
+	if (!isClassDataAvailable() && !hasCustomClasses) {
 		return null;
 	}
 
-	const windenState = getMonacoWindenState(monaco);
-	const initialClasses = [...getWindenClasses(), ...customClasses].filter(Boolean);
+	const autocompleteState = getMonacoAutocompleteState(monaco);
+	const initialClasses = [
+		...getAvailableClasses(),
+		...(hasCustomClasses ? customClasses : []),
+	].filter(Boolean);
 
 	initialClasses.forEach((className) => {
-		windenState.classes.add(className);
+		autocompleteState.classes.add(className);
 	});
 
-	const getClassesList = () => Array.from(windenState.classes);
-	const classCount = windenState.classes.size;
+	const refreshBaseClasses = () => {
+		getAvailableClasses()
+			.filter(Boolean)
+			.forEach((className) => {
+				autocompleteState.classes.add(className);
+			});
+	};
+
+	const getClassesList = () => {
+		refreshBaseClasses();
+
+		if (hasCustomClasses) {
+			customClasses
+				.filter(Boolean)
+				.forEach((className) => {
+					autocompleteState.classes.add(className);
+				});
+		}
+
+		return Array.from(autocompleteState.classes);
+	};
 
 	// Generate a unique ID for this provider instance
 	const instanceId = Math.random().toString(36).substr(2, 9);
+	const totalClasses = autocompleteState.classes.size;
+	console.log(`[FanCoolo] Class autocomplete instance ${instanceId} ready with ${totalClasses} classes`);
 
 	// Register completion provider for each language (reusing global providers when available)
 	const managedLanguages = [];
 
 	languages.forEach((language) => {
-		const existingProvider = windenState.providers.get(language);
+		const existingProvider = autocompleteState.providers.get(language);
 
 		if (existingProvider) {
 			existingProvider.refCount += 1;
@@ -350,7 +412,7 @@ export function createWindenCompletionProvider(monaco, languages = ['php', 'html
 			},
 		});
 
-		windenState.providers.set(language, {
+		autocompleteState.providers.set(language, {
 			disposable,
 			refCount: 1,
 			instanceId,
@@ -363,7 +425,7 @@ export function createWindenCompletionProvider(monaco, languages = ['php', 'html
 	return {
 		dispose: () => {
 			managedLanguages.forEach(({ language }) => {
-				const entry = windenState.providers.get(language);
+				const entry = autocompleteState.providers.get(language);
 
 				if (!entry) {
 					return;
@@ -373,12 +435,18 @@ export function createWindenCompletionProvider(monaco, languages = ['php', 'html
 
 				if (entry.refCount <= 0) {
 					entry.disposable.dispose();
-					windenState.providers.delete(language);
+					autocompleteState.providers.delete(language);
 				}
 			});
 		},
 	};
 }
+
+/**
+ * Legacy alias for backwards compatibility
+ * @deprecated Use createClassNamesCompletionProvider() instead
+ */
+export const createWindenCompletionProvider = createClassNamesCompletionProvider;
 
 /**
  * Initialize Winden autocomplete for a Monaco editor instance
@@ -404,9 +472,12 @@ export function initializeWindenAutocomplete(editor, monaco, options = {}) {
 		...providerOptions
 	} = options;
 
-	// If Winden is already available, initialize immediately
-	if (isWindenAvailable()) {
-		return createWindenCompletionProvider(monaco, languages, providerOptions);
+	const hasCustomClasses =
+		Array.isArray(providerOptions.customClasses) && providerOptions.customClasses.length > 0;
+
+	// If class data is already available, initialize immediately
+	if (isClassDataAvailable() || hasCustomClasses) {
+		return createClassNamesCompletionProvider(monaco, languages, providerOptions);
 	}
 
 	// Otherwise, retry with polling
@@ -417,12 +488,12 @@ export function initializeWindenAutocomplete(editor, monaco, options = {}) {
 	const attemptInitialization = () => {
 		attempts++;
 
-		if (isWindenAvailable()) {
+		if (isClassDataAvailable() || hasCustomClasses) {
 			if (retryInterval) {
 				clearInterval(retryInterval);
 				retryInterval = null;
 			}
-			disposable = createWindenCompletionProvider(monaco, languages, providerOptions);
+			disposable = createClassNamesCompletionProvider(monaco, languages, providerOptions);
 		} else if (attempts >= retryAttempts) {
 			if (retryInterval) {
 				clearInterval(retryInterval);
@@ -454,10 +525,10 @@ export function initializeWindenAutocomplete(editor, monaco, options = {}) {
  */
 export function getWindenStatus() {
 	return {
-		isAvailable: isWindenAvailable(),
-		classCount: getWindenClasses().length,
-		screenCount: getWindenScreens().length,
-		screens: getWindenScreens(),
-		sampleClasses: getWindenClasses().slice(0, 10),
+		isAvailable: isClassDataAvailable(),
+		classCount: getAvailableClasses().length,
+		screenCount: getBreakpointPrefixes().length,
+		screens: getBreakpointPrefixes(),
+		sampleClasses: getAvailableClasses().slice(0, 10),
 	};
 }
